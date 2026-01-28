@@ -369,6 +369,19 @@ router.get('/available-topics/:accessCode/:groupId', async (req, res, next) => {
             { $sample: { size: 4 } }
         ]);
 
+        if (topics.length > 0) {
+            // MARK ALL 4 AS USED IMMEDIATELY so they don't appear in other spins (Confidentiality)
+            const topicIds = topics.map(t => t._id);
+            await Topic.updateMany(
+                { _id: { $in: topicIds } },
+                {
+                    isUsed: true,
+                    usedByPanel: panel._id,
+                    usedAt: new Date()
+                }
+            );
+        }
+
         res.status(200).json({
             success: true,
             isAlreadySelected: false,
@@ -391,9 +404,8 @@ router.post('/claim-topic', async (req, res, next) => {
 
         // Use atomic update to prevent race conditions
         const topic = await Topic.findOneAndUpdate(
-            { _id: topicId, isUsed: false },
+            { _id: topicId, subEventId: panel.subEventId },
             {
-                isUsed: true,
                 usedByGroup: groupId,
                 usedByPanel: panel._id,
                 usedAt: new Date()
