@@ -349,17 +349,27 @@ router.get('/available-topics/:accessCode/:groupId', async (req, res, next) => {
 
         if (!panel) return res.status(401).json({ success: false, message: 'Invalid access code' });
 
-        // Check if group already has a topic
-        const existingTopic = await Topic.findOne({
+        // Check for ANY topics associated with this group
+        const existingTopics = await Topic.find({
             usedByGroup: groupId,
             subEventId: panel.subEventId
         });
 
-        if (existingTopic) {
+        if (existingTopics.length === 1) {
+            // This is the finalized single topic
             return res.status(200).json({
                 success: true,
                 isAlreadySelected: true,
-                data: [existingTopic]
+                data: existingTopics
+            });
+        }
+
+        if (existingTopics.length > 1) {
+            // This is a pre-pulled pool of 4
+            return res.status(200).json({
+                success: true,
+                isAlreadySelected: false,
+                data: existingTopics
             });
         }
 
@@ -370,12 +380,13 @@ router.get('/available-topics/:accessCode/:groupId', async (req, res, next) => {
         ]);
 
         if (topics.length > 0) {
-            // MARK ALL 4 AS USED IMMEDIATELY so they don't appear in other spins (Confidentiality)
+            // MARK ALL 4 AS USED AND ASSOCIATED with this group pool
             const topicIds = topics.map(t => t._id);
             await Topic.updateMany(
                 { _id: { $in: topicIds } },
                 {
                     isUsed: true,
+                    usedByGroup: groupId,
                     usedByPanel: panel._id,
                     usedAt: new Date()
                 }
@@ -385,7 +396,8 @@ router.get('/available-topics/:accessCode/:groupId', async (req, res, next) => {
             const io = req.app.get('io');
             io.to('admin').emit('topic:used_bulk', {
                 topicIds: topicIds,
-                panelId: panel._id
+                panelId: panel._id,
+                groupId: groupId
             });
         }
 
@@ -426,6 +438,21 @@ router.post('/claim-topic', async (req, res, next) => {
                 message: 'Topic already taken or invalid'
             });
         }
+
+        // Cleanup: remove usedByGroup from other candidate topics in the pool
+        await Topic.updateMany(
+            {
+                usedByGroup: groupId,
+                _id: { $ne: topicId }
+            },
+            { usedByGroup: null }
+        );
+
+        // Emit socket event to admins
+        const io = req.app.get('io');
+        io.to('admin').emit('topic:claimed', {
+            topic: topic
+        });
 
         res.status(200).json({
             success: true,
