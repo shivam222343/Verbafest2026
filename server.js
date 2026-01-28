@@ -99,6 +99,7 @@ app.use('/api/admin/settings', require('./routes/admin/settings'));
 app.use('/api/admin/payment-settings', require('./routes/admin/paymentSettings'));
 app.use('/api/admin/users', require('./routes/admin/manageAdmins'));
 app.use('/api/admin/groups', require('./routes/admin/groups'));
+app.use('/api/admin/attendance', require('./routes/admin/attendance'));
 app.use('/api/participant', require('./routes/participant'));
 app.use('/api/admin/panels', require('./routes/admin/panels'));
 app.use('/api/judge', require('./routes/judge'));

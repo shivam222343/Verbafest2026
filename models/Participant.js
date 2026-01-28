@@ -112,6 +112,44 @@ const ParticipantSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+
+    // Attendance Tracking
+    attendance: {
+        // Overall event attendance
+        overall: {
+            isPresent: {
+                type: Boolean,
+                default: false
+            },
+            markedAt: {
+                type: Date
+            },
+            markedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Admin'
+            }
+        },
+        // Sub-event specific attendance
+        subEvents: [{
+            subEventId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'SubEvent',
+                required: true
+            },
+            isPresent: {
+                type: Boolean,
+                default: false
+            },
+            markedAt: {
+                type: Date
+            },
+            markedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Admin'
+            }
+        }]
+    },
+
     password: {
         type: String,
         minlength: 6,
