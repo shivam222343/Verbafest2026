@@ -6,6 +6,7 @@ const Participant = require('../../models/Participant');
 const SubEvent = require('../../models/SubEvent');
 const Round = require('../../models/Round');
 const { protect, authorize } = require('../../middleware/auth');
+const { generateGroupPDF, generateGroupHTML } = require('../../utils/groupExport');
 
 // All routes are protected and require admin role
 router.use(protect);
@@ -436,6 +437,42 @@ router.post('/:id/notify', async (req, res, next) => {
             message: `Notification sent and status updated for ${group.participants.length} members`,
             data: { venue, subEvent: subEventName }
         });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// @route   GET /api/admin/groups/export/:type
+// @desc    Export groups as PDF or HTML
+// @access  Private (Admin)
+router.get('/export/:format', async (req, res, next) => {
+    try {
+        const { format } = req.params;
+        const { groupIds } = req.query;
+
+        if (!groupIds) {
+            return res.status(400).json({ success: false, message: 'Please provide groupIds' });
+        }
+
+        const ids = groupIds.split(',');
+        const groups = await Group.find({ _id: { $in: ids } })
+            .populate('participants', 'fullName email prn currentStatus chestNumber')
+            .populate('panelId')
+            .sort({ groupNumber: 1 });
+
+        if (format === 'pdf') {
+            const doc = generateGroupPDF(groups);
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=groups-export-${Date.now()}.pdf`);
+            doc.pipe(res);
+            doc.end();
+        } else if (format === 'html') {
+            const html = generateGroupHTML(groups);
+            res.setHeader('Content-Type', 'text/html');
+            res.send(html);
+        } else {
+            res.status(400).json({ success: false, message: 'Invalid export format' });
+        }
     } catch (error) {
         next(error);
     }
