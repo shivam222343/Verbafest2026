@@ -29,7 +29,7 @@ router.post('/upload-proof', uploadPaymentProof.single('paymentProof'), async (r
 router.get('/settings', async (req, res, next) => {
     try {
         const settings = await SystemSettings.findOne({ key: 'core_settings' })
-            .select('eventName eventDate registrationDeadline isRegistrationOpen paymentQrCodeUrl contactEmail availableStreams availableColleges comboPrice');
+            .select('eventName eventDate registrationDeadline isRegistrationOpen singleEventQrCodeUrl allEventsQrCodeUrl contactEmail availableStreams availableColleges comboPrice');
 
         res.status(200).json({
             success: true,

@@ -23,7 +23,11 @@ const systemSettingsSchema = new mongoose.Schema({
     },
     contactEmail: String,
     maxGlobalParticipants: Number,
-    paymentQrCodeUrl: {
+    singleEventQrCodeUrl: {
+        type: String,
+        default: ''
+    },
+    allEventsQrCodeUrl: {
         type: String,
         default: ''
     },

@@ -167,7 +167,7 @@ const ParticipantSchema = new mongoose.Schema({
 });
 
 // Auto-increment Chest Number before saving new participant
-ParticipantSchema.pre('save', async function (next) {
+ParticipantSchema.pre('save', async function () {
     if (this.isNew) {
         try {
             console.log(`Generating chest number for ${this.fullName}...`);
@@ -180,10 +180,9 @@ ParticipantSchema.pre('save', async function (next) {
             console.log(`Assigned chest number: ${this.chestNumber}`);
         } catch (error) {
             console.error('Error in chestNumber pre-save hook:', error);
-            return next(error);
+            throw error;
         }
     }
-    next();
 });
 
 // Encrypt password before saving
