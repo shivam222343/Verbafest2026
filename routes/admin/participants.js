@@ -144,10 +144,12 @@ router.put('/:id/approve', async (req, res, next) => {
         await participant.save();
 
         // Update sub-event approved participant counts
-        for (const subEventId of participant.registeredSubEvents) {
-            const subEvent = await SubEvent.findById(subEventId);
-            if (subEvent) {
-                await subEvent.updateRegistrationCount();
+        if (participant.registeredSubEvents && Array.isArray(participant.registeredSubEvents)) {
+            for (const subEventId of participant.registeredSubEvents) {
+                const subEvent = await SubEvent.findById(subEventId);
+                if (subEvent) {
+                    await subEvent.updateRegistrationCount();
+                }
             }
         }
 
@@ -180,6 +182,7 @@ router.put('/:id/approve', async (req, res, next) => {
             data: participant
         });
     } catch (error) {
+        console.error('Error in participant approval:', error);
         next(error);
     }
 });

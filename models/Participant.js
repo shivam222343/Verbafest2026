@@ -170,13 +170,16 @@ const ParticipantSchema = new mongoose.Schema({
 ParticipantSchema.pre('save', async function (next) {
     if (this.isNew) {
         try {
+            console.log(`Generating chest number for ${this.fullName}...`);
             const counter = await Counter.findOneAndUpdate(
                 { model: 'Participant', field: 'chestNumber' },
                 { $inc: { count: 1 } },
                 { new: true, upsert: true }
             );
             this.chestNumber = counter.count;
+            console.log(`Assigned chest number: ${this.chestNumber}`);
         } catch (error) {
+            console.error('Error in chestNumber pre-save hook:', error);
             return next(error);
         }
     }
