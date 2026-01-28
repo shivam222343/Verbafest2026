@@ -81,7 +81,7 @@ router.get('/panel/:accessCode', async (req, res, next) => {
                 path: 'assignedGroups',
                 populate: {
                     path: 'participants',
-                    select: 'fullName email prn branch year college'
+                    select: 'fullName email prn branch year college chestNumber'
                 }
             })
             .populate('subEventId', 'name type')

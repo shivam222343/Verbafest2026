@@ -19,7 +19,7 @@ router.get('/overall', async (req, res) => {
     try {
         const { search, present } = req.query;
 
-        let query = {};
+        let query = { registrationStatus: 'approved' };
 
         // Search filter
         if (search) {
@@ -42,9 +42,9 @@ router.get('/overall', async (req, res) => {
             .sort({ fullName: 1 });
 
         const stats = {
-            total: await Participant.countDocuments(),
-            present: await Participant.countDocuments({ 'attendance.overall.isPresent': true }),
-            absent: await Participant.countDocuments({ 'attendance.overall.isPresent': false })
+            total: await Participant.countDocuments({ registrationStatus: 'approved' }),
+            present: await Participant.countDocuments({ registrationStatus: 'approved', 'attendance.overall.isPresent': true }),
+            absent: await Participant.countDocuments({ registrationStatus: 'approved', 'attendance.overall.isPresent': false })
         };
 
         res.json({
@@ -120,7 +120,10 @@ router.get('/subevent/:id', async (req, res) => {
             });
         }
 
-        let query = { registeredSubEvents: subEventId };
+        let query = {
+            registeredSubEvents: subEventId,
+            registrationStatus: 'approved'
+        };
 
         // Search filter
         if (search) {
@@ -269,7 +272,7 @@ router.post('/bulk', async (req, res) => {
                 'attendance.overall.markedBy': req.user.id
             };
 
-            const result = await Participant.updateMany({}, { $set: updateData });
+            const result = await Participant.updateMany({ registrationStatus: 'approved' }, { $set: updateData });
 
             res.json({
                 success: true,
@@ -277,7 +280,10 @@ router.post('/bulk', async (req, res) => {
                 count: result.modifiedCount
             });
         } else if (type === 'subevent' && subEventId) {
-            const participants = await Participant.find({ registeredSubEvents: subEventId });
+            const participants = await Participant.find({
+                registeredSubEvents: subEventId,
+                registrationStatus: 'approved'
+            });
 
             for (const participant of participants) {
                 if (!participant.attendance) {
@@ -349,7 +355,10 @@ router.get('/export/pdf', async (req, res) => {
             }
             subEventName = subEvent.name;
 
-            participants = await Participant.find({ registeredSubEvents: subEventId })
+            participants = await Participant.find({
+                registeredSubEvents: subEventId,
+                registrationStatus: 'approved'
+            })
                 .populate('registeredSubEvents', 'name')
                 .select('fullName email mobile college branch year attendance')
                 .sort({ fullName: 1 });
@@ -367,7 +376,7 @@ router.get('/export/pdf', async (req, res) => {
                 absent: participants.length - presentCount
             };
         } else {
-            participants = await Participant.find()
+            participants = await Participant.find({ registrationStatus: 'approved' })
                 .populate('registeredSubEvents', 'name')
                 .populate('attendance.overall.markedBy', 'name')
                 .select('fullName email mobile college branch year attendance')
@@ -409,13 +418,16 @@ router.get('/export/csv', async (req, res) => {
             }
             subEventName = subEvent.name;
 
-            participants = await Participant.find({ registeredSubEvents: subEventId })
+            participants = await Participant.find({
+                registeredSubEvents: subEventId,
+                registrationStatus: 'approved'
+            })
                 .populate('registeredSubEvents', 'name')
                 .populate('attendance.subEvents.markedBy', 'name')
                 .select('fullName email mobile college branch year registeredSubEvents attendance')
                 .sort({ fullName: 1 });
         } else {
-            participants = await Participant.find()
+            participants = await Participant.find({ registrationStatus: 'approved' })
                 .populate('registeredSubEvents', 'name')
                 .populate('attendance.overall.markedBy', 'name')
                 .select('fullName email mobile college branch year registeredSubEvents attendance')
@@ -449,7 +461,10 @@ router.get('/export/html', async (req, res) => {
             }
             subEventName = subEvent.name;
 
-            participants = await Participant.find({ registeredSubEvents: subEventId })
+            participants = await Participant.find({
+                registeredSubEvents: subEventId,
+                registrationStatus: 'approved'
+            })
                 .populate('registeredSubEvents', 'name')
                 .select('fullName email mobile college branch year attendance')
                 .sort({ fullName: 1 });
@@ -467,7 +482,7 @@ router.get('/export/html', async (req, res) => {
                 absent: participants.length - presentCount
             };
         } else {
-            participants = await Participant.find()
+            participants = await Participant.find({ registrationStatus: 'approved' })
                 .populate('registeredSubEvents', 'name')
                 .select('fullName email mobile college branch year attendance')
                 .sort({ fullName: 1 });

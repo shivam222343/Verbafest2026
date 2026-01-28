@@ -211,7 +211,7 @@ router.post('/auto-form', async (req, res, next) => {
 router.get('/round/:roundId', async (req, res, next) => {
     try {
         const groups = await Group.find({ roundId: req.params.roundId })
-            .populate('participants', 'fullName email prn currentStatus')
+            .populate('participants', 'fullName email prn currentStatus chestNumber')
             .populate('panelId', 'panelName panelNumber')
             .sort({ groupNumber: 1 });
 

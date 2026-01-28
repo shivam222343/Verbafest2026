@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Counter = require('./Counter');
 
 const ParticipantSchema = new mongoose.Schema({
     // Personal Information
@@ -44,6 +45,12 @@ const ParticipantSchema = new mongoose.Schema({
     college: {
         type: String,
         trim: true
+    },
+
+    chestNumber: {
+        type: Number,
+        unique: true,
+        sparse: true
     },
 
     // Registration Details
@@ -157,6 +164,23 @@ const ParticipantSchema = new mongoose.Schema({
     }
 }, {
     timestamps: true
+});
+
+// Auto-increment Chest Number before saving new participant
+ParticipantSchema.pre('save', async function (next) {
+    if (this.isNew) {
+        try {
+            const counter = await Counter.findOneAndUpdate(
+                { model: 'Participant', field: 'chestNumber' },
+                { $inc: { count: 1 } },
+                { new: true, upsert: true }
+            );
+            this.chestNumber = counter.count;
+        } catch (error) {
+            return next(error);
+        }
+    }
+    next();
 });
 
 // Encrypt password before saving
