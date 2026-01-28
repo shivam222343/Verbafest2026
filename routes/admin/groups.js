@@ -65,7 +65,7 @@ router.post('/', async (req, res, next) => {
 // @access  Private (Admin)
 router.post('/auto-form', async (req, res, next) => {
     try {
-        const { subEventId, roundId, groupSize } = req.body;
+        const { subEventId, roundId, groupSize, strategy } = req.body;
 
         // Validate inputs
         if (!subEventId || !roundId) {
@@ -146,60 +146,88 @@ router.post('/auto-form', async (req, res, next) => {
         const maxSize = subEvent.groupSizeRange?.max || 5;
         const targetSize = groupSize || Math.floor((minSize + maxSize) / 2);
 
-        // Shuffle participants for random grouping
-        const shuffled = participants.sort(() => 0.5 - Math.random());
-
-        // Form groups
-        const groups = [];
-        let groupNumber = 1;
-
         // Get current max group number for this round to avoid collision
+        let currentGroupNumber = 1;
         const lastGroup = await Group.findOne({ roundId }).sort({ groupNumber: -1 });
-        if (lastGroup) groupNumber = lastGroup.groupNumber + 1;
+        if (lastGroup) currentGroupNumber = lastGroup.groupNumber + 1;
 
-        for (let i = 0; i < shuffled.length; i += targetSize) {
-            const groupParticipants = shuffled.slice(i, i + targetSize);
+        const allFormedGroups = [];
 
-            // If this is the last batch and it's too small, distribute instead of creating
-            if (groupParticipants.length < minSize && groups.length > 0) {
-                // Distribute remaining participants to existing groups formed in THIS call
-                console.log(`Distributing ${groupParticipants.length} remaining participants to earlier groups`);
-                for (let j = 0; j < groupParticipants.length; j++) {
-                    const groupToAddTo = groups[j % groups.length];
-                    groupToAddTo.participants.push(groupParticipants[j]._id);
-                    await groupToAddTo.save();
-                }
-                break;
-            }
+        // Shuffle all participants initially for randomness within categories
+        const shuffledPool = participants.sort(() => 0.5 - Math.random());
 
-            // Fallback: If we have very few participants and can't even form ONE min-sized group,
-            // but we have at least ONE participant, create a single group anyway.
-            if (groupParticipants.length < minSize && groups.length === 0 && groupParticipants.length > 0) {
-                console.log(`Pool too small (${groupParticipants.length} < ${minSize}), forming one small group anyway.`);
-                // We create the group below normally
-            } else if (groupParticipants.length === 0 && groups.length === 0) {
-                console.log('No participants to form any group');
-                return res.status(400).json({
-                    success: false,
-                    message: 'No unassigned participants available'
-                });
-            }
-
-            const group = await Group.create({
-                subEventId,
-                roundId,
-                groupNumber: groupNumber++,
-                groupName: `Group ${groupNumber - 1}`,
-                participants: groupParticipants.map(p => p._id)
+        if (strategy === 'year') {
+            // Group by year
+            const yearGroups = {};
+            shuffledPool.forEach(p => {
+                const yr = p.year || 5; // 5 for 'Other'
+                if (!yearGroups[yr]) yearGroups[yr] = [];
+                yearGroups[yr].push(p);
             });
 
-            groups.push(group);
+            // Process each year group separately
+            for (const yr in yearGroups) {
+                const pool = yearGroups[yr];
+                const formedForYear = [];
+
+                for (let i = 0; i < pool.length; i += targetSize) {
+                    const groupParticipants = pool.slice(i, i + targetSize);
+
+                    // Distribution logic for year-specific groups
+                    if (groupParticipants.length < minSize && formedForYear.length > 0) {
+                        for (let j = 0; j < groupParticipants.length; j++) {
+                            const groupToAddTo = formedForYear[j % formedForYear.length];
+                            groupToAddTo.participants.push(groupParticipants[j]._id);
+                            await groupToAddTo.save();
+                        }
+                        break;
+                    }
+
+                    if (groupParticipants.length > 0) {
+                        const yearName = yr == 1 ? 'FY' : yr == 2 ? 'SY' : yr == 3 ? 'TY' : yr == 4 ? 'LY' : 'Other';
+                        const group = await Group.create({
+                            subEventId,
+                            roundId,
+                            groupNumber: currentGroupNumber++,
+                            groupName: `Group ${currentGroupNumber - 1} (${yearName})`,
+                            participants: groupParticipants.map(p => p._id)
+                        });
+                        formedForYear.push(group);
+                        allFormedGroups.push(group);
+                    }
+                }
+            }
+        } else {
+            // Default random strategy
+            for (let i = 0; i < shuffledPool.length; i += targetSize) {
+                const groupParticipants = shuffledPool.slice(i, i + targetSize);
+
+                if (groupParticipants.length < minSize && allFormedGroups.length > 0) {
+                    for (let j = 0; j < groupParticipants.length; j++) {
+                        const groupToAddTo = allFormedGroups[j % allFormedGroups.length];
+                        groupToAddTo.participants.push(groupParticipants[j]._id);
+                        await groupToAddTo.save();
+                    }
+                    break;
+                }
+
+                if (groupParticipants.length > 0) {
+                    const group = await Group.create({
+                        subEventId,
+                        roundId,
+                        groupNumber: currentGroupNumber++,
+                        groupName: `Group ${currentGroupNumber - 1}`,
+                        participants: groupParticipants.map(p => p._id)
+                    });
+                    allFormedGroups.push(group);
+                }
+            }
         }
 
         res.status(201).json({
             success: true,
-            message: `Successfully formed ${groups.length} groups`,
-            data: groups
+            message: `Successfully formed ${allFormedGroups.length} groups`,
+            data: allFormedGroups
         });
     } catch (error) {
         next(error);
