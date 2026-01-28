@@ -123,4 +123,42 @@ router.post('/bulk-delete', async (req, res, next) => {
     }
 });
 
+// @desc    Reset a topic (make it available again)
+// @route   POST /api/admin/topics/:id/reset
+router.post('/:id/reset', async (req, res, next) => {
+    try {
+        const topic = await Topic.findByIdAndUpdate(
+            req.params.id,
+            {
+                isUsed: false,
+                usedByGroup: null,
+                usedByPanel: null,
+                usedAt: null
+            },
+            { new: true }
+        );
+
+        if (!topic) {
+            return res.status(404).json({
+                success: false,
+                message: 'Topic not found'
+            });
+        }
+
+        // Emit socket event to admins
+        const io = req.app.get('io');
+        io.to('admin').emit('topic:reset', {
+            topicId: topic._id
+        });
+
+        res.status(200).json({
+            success: true,
+            data: topic,
+            message: 'Topic is now available'
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;

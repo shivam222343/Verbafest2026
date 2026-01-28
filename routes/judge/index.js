@@ -349,14 +349,15 @@ router.get('/available-topics/:accessCode/:groupId', async (req, res, next) => {
 
         if (!panel) return res.status(401).json({ success: false, message: 'Invalid access code' });
 
-        // Check for ANY topics associated with this group
+        // Check for ANY topics associated with this group AND this specific panel
         const existingTopics = await Topic.find({
             usedByGroup: groupId,
+            usedByPanel: panel._id,
             subEventId: panel.subEventId
         });
 
         if (existingTopics.length === 1) {
-            // This is the finalized single topic
+            // This is the finalized single topic for THIS panel
             return res.status(200).json({
                 success: true,
                 isAlreadySelected: true,
@@ -365,7 +366,7 @@ router.get('/available-topics/:accessCode/:groupId', async (req, res, next) => {
         }
 
         if (existingTopics.length > 1) {
-            // This is a pre-pulled pool of 4
+            // This is the pre-pulled pool of 4 for THIS panel
             return res.status(200).json({
                 success: true,
                 isAlreadySelected: false,
@@ -439,10 +440,11 @@ router.post('/claim-topic', async (req, res, next) => {
             });
         }
 
-        // Cleanup: remove usedByGroup from other candidate topics in the pool
+        // Cleanup: remove usedByGroup from other candidate topics in the pool for THIS PANEL only
         await Topic.updateMany(
             {
                 usedByGroup: groupId,
+                usedByPanel: panel._id,
                 _id: { $ne: topicId }
             },
             { usedByGroup: null }
