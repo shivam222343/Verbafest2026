@@ -9,8 +9,8 @@ const Participant = require('../../models/Participant');
 router.get('/subevent/:subEventId', async (req, res) => {
     try {
         const rounds = await Round.find({ subEvent: req.params.subEventId })
-            .populate('participants', 'fullName email prn currentStatus')
-            .populate('winners', 'fullName email prn currentStatus')
+            .populate('participants', 'fullName email prn currentStatus attendance')
+            .populate('winners', 'fullName email prn currentStatus attendance')
             .sort({ roundNumber: 1 });
 
         res.json({ success: true, data: rounds });
@@ -24,8 +24,8 @@ router.get('/subevent/:subEventId', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const round = await Round.findById(req.params.id)
-            .populate('participants', 'fullName email prn currentStatus')
-            .populate('winners', 'fullName email prn currentStatus');
+            .populate('participants', 'fullName email prn currentStatus attendance')
+            .populate('winners', 'fullName email prn currentStatus attendance');
 
         if (!round) {
             return res.status(404).json({ success: false, message: 'Round not found' });
