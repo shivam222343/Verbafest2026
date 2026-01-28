@@ -20,6 +20,7 @@ const httpServer = createServer(app);
 const allowedOrigins = [
     'http://localhost:5173',
     'https://verbafest2026.netlify.app',
+    'https://verbafest2026-frontend-duz5.vercel.app',
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
