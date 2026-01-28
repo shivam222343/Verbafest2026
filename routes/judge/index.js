@@ -4,6 +4,7 @@ const Panel = require('../../models/Panel');
 const Group = require('../../models/Group');
 const Evaluation = require('../../models/Evaluation');
 const Participant = require('../../models/Participant');
+const Topic = require('../../models/Topic');
 
 // @route   POST /api/judge/login
 // @desc    Judge login with access code
@@ -332,6 +333,84 @@ router.post('/select-for-next-round', async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: `Selected ${selectedGroupIds.length} groups for next round`
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// @route   GET /api/judge/available-topics/:accessCode/:groupId
+// @desc    Get 4 random unused topics for the sub-event
+// @access  Public (with access code)
+router.get('/available-topics/:accessCode/:groupId', async (req, res, next) => {
+    try {
+        const { accessCode, groupId } = req.params;
+        const panel = await Panel.findOne({ 'judges.accessCode': accessCode.toUpperCase() });
+
+        if (!panel) return res.status(401).json({ success: false, message: 'Invalid access code' });
+
+        // Check if group already has a topic
+        const existingTopic = await Topic.findOne({
+            usedByGroup: groupId,
+            subEventId: panel.subEventId
+        });
+
+        if (existingTopic) {
+            return res.status(200).json({
+                success: true,
+                isAlreadySelected: true,
+                data: [existingTopic]
+            });
+        }
+
+        // Get 4 random unused topics
+        const topics = await Topic.aggregate([
+            { $match: { subEventId: panel.subEventId, isUsed: false } },
+            { $sample: { size: 4 } }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            isAlreadySelected: false,
+            data: topics
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// @route   POST /api/judge/claim-topic
+// @desc    Mark a topic as used
+// @access  Public (with access code)
+router.post('/claim-topic', async (req, res, next) => {
+    try {
+        const { accessCode, groupId, topicId } = req.body;
+        const panel = await Panel.findOne({ 'judges.accessCode': accessCode.toUpperCase() });
+
+        if (!panel) return res.status(401).json({ success: false, message: 'Invalid access code' });
+
+        // Use atomic update to prevent race conditions
+        const topic = await Topic.findOneAndUpdate(
+            { _id: topicId, isUsed: false },
+            {
+                isUsed: true,
+                usedByGroup: groupId,
+                usedByPanel: panel._id,
+                usedAt: new Date()
+            },
+            { new: true }
+        );
+
+        if (!topic) {
+            return res.status(400).json({
+                success: false,
+                message: 'Topic already taken or invalid'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: topic
         });
     } catch (error) {
         next(error);
