@@ -380,6 +380,13 @@ router.get('/available-topics/:accessCode/:groupId', async (req, res, next) => {
                     usedAt: new Date()
                 }
             );
+
+            // Emit socket event to admins
+            const io = req.app.get('io');
+            io.to('admin').emit('topic:used_bulk', {
+                topicIds: topicIds,
+                panelId: panel._id
+            });
         }
 
         res.status(200).json({

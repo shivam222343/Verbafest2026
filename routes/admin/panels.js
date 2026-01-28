@@ -268,6 +268,13 @@ router.post('/:id/assign-groups', async (req, res, next) => {
 
         await panel.save();
 
+        // Emit socket event to the panel room (Judges listen here)
+        const io = req.app.get('io');
+        io.to(`panel:${panel._id}`).emit('group:assigned', {
+            panelId: panel._id,
+            groupIds: groupIds
+        });
+
         res.status(200).json({
             success: true,
             message: `Assigned ${groupIds.length} groups to panel`,
