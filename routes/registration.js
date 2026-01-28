@@ -53,16 +53,10 @@ router.get('/form', async (req, res, next) => {
             ]
         }).select('name description type accentColor maxParticipants approvedParticipants registrationPrice');
 
-        // Filter out full events
-        const availableEvents = subEvents.filter(event => {
-            if (!event.maxParticipants) return true;
-            return event.approvedParticipants < event.maxParticipants;
-        });
-
         res.status(200).json({
             success: true,
-            count: availableEvents.length,
-            data: availableEvents
+            count: subEvents.length,
+            data: subEvents
         });
     } catch (error) {
         next(error);
