@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const SystemSettings = require('../../models/SystemSettings');
 const { protect, authorize } = require('../../middleware/auth');
-const { uploadSystemImage } = require('../../middleware/upload');
+const { uploadSystemImage, uploadBanner } = require('../../middleware/upload');
 
 router.use(protect);
 router.use(authorize('admin'));
@@ -10,6 +10,19 @@ router.use(authorize('admin'));
 // @desc    Upload QR Code
 // @route   POST /api/admin/settings/upload-qr
 router.post('/upload-qr', uploadSystemImage.single('qrCode'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please upload a file' });
+        }
+        res.json({ success: true, url: req.file.path });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// @desc    Upload Public Sub-Events Banner
+// @route   POST /api/admin/settings/upload-banner
+router.post('/upload-banner', uploadBanner.single('banner'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'Please upload a file' });

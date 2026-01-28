@@ -42,6 +42,14 @@ const systemSettingsSchema = new mongoose.Schema({
     comboPrice: {
         type: Number,
         default: 150
+    },
+    showSubEventsOnPublicPage: {
+        type: Boolean,
+        default: false
+    },
+    publicSubEventsBannerUrl: {
+        type: String,
+        default: ''
     }
 }, {
     timestamps: true

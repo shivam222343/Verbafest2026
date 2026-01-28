@@ -32,6 +32,16 @@ const systemSettingsStorage = new CloudinaryStorage({
     }
 });
 
+// Cloudinary storage for banner (wider)
+const bannerStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'event-orchestration/banners',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        transformation: [{ width: 1500, height: 500, crop: 'limit' }]
+    }
+});
+
 // Upload middleware for payment proofs
 exports.uploadPaymentProof = multer({
     storage: paymentProofStorage,
@@ -47,5 +57,14 @@ exports.uploadSystemImage = multer({
     fileFilter: fileFilter,
     limits: {
         fileSize: 2 * 1024 * 1024 // 2MB max file size
+    }
+});
+
+// Upload middleware for banners
+exports.uploadBanner = multer({
+    storage: bannerStorage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB max file size
     }
 });
