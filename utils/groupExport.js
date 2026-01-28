@@ -3,105 +3,92 @@ const PDFDocument = require('pdfkit');
 /**
  * Generate PDF for group export
  * @param {Array} groups - Array of group objects
- * @param {Object} options - Export options
  * @returns {PDFDocument} - PDF document stream
  */
-function generateGroupPDF(groups, options = {}) {
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+function generateGroupPDF(groups) {
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+
+    // Document Header (Only once at the start)
+    doc.fillColor('#1e1b4b').fontSize(16).font('Helvetica-Bold').text('Verbafest 2026', { align: 'center' });
+    doc.fillColor('#475569').fontSize(10).font('Helvetica').text('Official Group Registration Report', { align: 'center' });
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+    doc.moveDown(1.5);
+    doc.moveTo(30, doc.y).lineTo(565, doc.y).stroke('#e2e8f0');
+    doc.moveDown(1);
 
     groups.forEach((group, index) => {
-        if (index > 0) doc.addPage();
+        // Check if we need a new page (roughly 200 units needed for a small group)
+        if (doc.y > 650) {
+            doc.addPage();
+            doc.fillColor('#1e1b4b').fontSize(10).font('Helvetica-Bold').text('Verbafest 2026 - Continued', { align: 'right' });
+            doc.moveDown(1);
+        }
 
-        // Banner Header
-        doc.rect(0, 0, 612, 100).fill('#1e1b4b');
-        doc.fillColor('white').fontSize(24).font('Helvetica-Bold').text('Verbafest 2026', 0, 35, { align: 'center' });
-        doc.fontSize(14).font('Helvetica').text('Official Group Registration Details', 0, 65, { align: 'center' });
+        // Group Header Line
+        const groupStartY = doc.y;
+        doc.rect(30, groupStartY, 535, 20).fill('#f1f5f9');
+        doc.fillColor('#1e1b4b').fontSize(11).font('Helvetica-Bold').text(`${group.groupName} (#${group.groupNumber})`, 40, groupStartY + 5);
 
-        doc.fillColor('black');
-        doc.moveDown(4);
+        doc.fillColor('#475569').fontSize(9).font('Helvetica');
+        const panelText = `Panel: ${group.panelId?.panelName || 'TBA'} | Venue: ${group.panelId?.venue || 'TBA'}`;
+        doc.text(panelText, 300, groupStartY + 5, { align: 'right', width: 255 });
 
-        // Group & Panel Header
-        doc.fontSize(18).font('Helvetica-Bold').text(`${group.groupName}`, { align: 'left' });
-        doc.fontSize(10).font('Helvetica').text(`Generated on: ${new Date().toLocaleString()}`, { align: 'right' });
-        doc.moveTo(40, doc.y + 10).lineTo(550, doc.y + 10).stroke('#e2e8f0');
         doc.moveDown(1.5);
 
-        // Team Info Info Box
-        const startY = doc.y;
-        doc.rect(40, startY, 515, 60).fill('#f8fafc').stroke('#e2e8f0');
-
-        doc.fillColor('#1e293b').fontSize(10).font('Helvetica-Bold');
-        doc.text('GROUP NUMBER', 60, startY + 15);
-        doc.text('ASSIGNED PANEL', 200, startY + 15);
-        doc.text('VENUE / LOCATION', 400, startY + 15);
-
-        doc.fillColor('#475569').fontSize(12).font('Helvetica-Bold');
-        doc.text(`#${group.groupNumber}`, 60, startY + 30);
-        doc.text(group.panelId?.panelName || 'PENDING', 200, startY + 30);
-        doc.fillColor('#ef4444').text(group.panelId?.venue || 'TBA', 400, startY + 30);
-
-        doc.fillColor('black');
-        doc.moveDown(3);
-
-        // Participants Table
-        doc.fontSize(14).font('Helvetica-Bold').text('Team Members List');
-        doc.moveDown(0.5);
-
+        // Participants Table Header
         const tableTop = doc.y;
-        const col1X = 50;  // Chest No
-        const col2X = 120; // Full Name
-        const col3X = 300; // PRN
-        const col4X = 450; // Status
+        const col1X = 40;  // Chest No
+        const col2X = 100; // Full Name
+        const col3X = 350; // PRN
+        const col4X = 480; // Status
 
-        // Table Header Background
-        doc.rect(40, tableTop - 5, 515, 25).fill('#1e1b4b');
-        doc.fillColor('white').fontSize(10).font('Helvetica-Bold');
-        doc.text('CHEST NO', col1X, tableTop);
-        doc.text('STUDENT NAME', col2X, tableTop);
-        doc.text('REGISTRATION ID', col3X, tableTop);
-        doc.text('STATUS', col4X, tableTop);
+        doc.rect(30, tableTop, 535, 18).fill('#1e1b4b');
+        doc.fillColor('white').fontSize(8).font('Helvetica-Bold');
+        doc.text('CHEST NO', col1X, tableTop + 5);
+        doc.text('STUDENT NAME', col2X, tableTop + 5);
+        doc.text('REGISTRATION ID', col3X, tableTop + 5);
+        doc.text('STATUS', col4X, tableTop + 5);
 
-        let currentY = tableTop + 30;
-        doc.fillColor('black');
+        let currentY = tableTop + 18;
+        doc.fillColor('#1e293b').font('Helvetica').fontSize(9);
 
         group.participants?.forEach((p, i) => {
-            if (i % 2 === 0) {
-                doc.rect(40, currentY - 8, 515, 25).fill('#f1f5f9');
-                doc.fillColor('black');
+            // Row highlight
+            if (i % 2 === 1) {
+                doc.rect(30, currentY, 535, 18).fill('#f8fafc');
             }
 
-            doc.font('Helvetica-Bold').fontSize(11).text(p.chestNumber?.toString() || '-', col1X, currentY);
-            doc.font('Helvetica').fontSize(10).text(p.fullName || 'N/A', col2X, currentY);
-            doc.text(p.prn || '-', col3X, currentY);
+            doc.fillColor('#1e293b');
+            doc.font('Helvetica-Bold').text(p.chestNumber?.toString() || '-', col1X, currentY + 5);
+            doc.font('Helvetica').text(p.fullName || 'N/A', col2X, currentY + 5, { width: 240, height: 12, ellipsis: true });
+            doc.text(p.prn || '-', col3X, currentY + 5);
 
             const status = p.currentStatus?.toUpperCase() || 'BUSY';
-            doc.font('Helvetica-Bold').fontSize(9).text(status, col4X, currentY);
+            doc.fontSize(7).font('Helvetica-Bold').text(status, col4X, currentY + 6);
+            doc.fontSize(9); // Reset font size
 
-            currentY += 25;
+            currentY += 18;
         });
 
-        // Judges Section
-        if (group.panelId?.judges && group.panelId.judges.length > 0) {
-            doc.moveDown(2);
-            doc.font('Helvetica-Bold').fontSize(12).text('Assigned Evaluation Committee:');
-            doc.font('Helvetica').fontSize(10);
-            group.panelId.judges.forEach(j => {
-                doc.text(`• ${j.name}`, { indent: 15 });
-            });
-        }
+        doc.y = currentY;
 
-        // Instructions
+        // Instructions (Compact)
         if (group.panelId?.instructions) {
-            doc.moveDown(2);
-            doc.rect(40, doc.y, 515, 50).dash(5, { space: 2 }).stroke('#6366f1');
-            doc.fontSize(11).font('Helvetica-Bold').fillColor('#4338ca').text('IMPORTANT INSTRUCTIONS:', 50, doc.y + 10);
-            doc.fontSize(10).font('Helvetica').fillColor('#1e293b').text(group.panelId.instructions, 50, doc.y + 5);
-            doc.undash();
+            doc.moveDown(0.5);
+            doc.fillColor('#92400e').fontSize(8).font('Helvetica-Bold').text('INSTRUCTIONS: ', 40, doc.y, { continued: true });
+            doc.font('Helvetica').fillColor('#b45309').text(group.panelId.instructions);
         }
 
-        // Footer Branding
-        doc.fontSize(8).fillColor('#94a3b8').text('Verbafest 2026 Management System | Please report to your venue at least 10 minutes prior to start.', 0, 780, { align: 'center' });
+        doc.moveDown(2);
     });
+
+    // Footer Branding (Auto on every page using doc.on or just simple loop)
+    // For simplicity, just at the end here or we can use the doc.on('pageAdded')
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        doc.fontSize(7).fillColor('#94a3b8').text('Verbafest 2026 Management System | Generated Documents', 0, 800, { align: 'center' });
+    }
 
     return doc;
 }
@@ -109,10 +96,9 @@ function generateGroupPDF(groups, options = {}) {
 /**
  * Generate HTML for group export
  * @param {Array} groups - Array of group objects
- * @param {Object} options - Export options
  * @returns {String} - HTML string
  */
-function generateGroupHTML(groups, options = {}) {
+function generateGroupHTML(groups) {
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -121,167 +107,108 @@ function generateGroupHTML(groups, options = {}) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Group Assignment Report</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         
-        body { font-family: 'Outfit', sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; margin: 0; }
-        .group-card { 
-            background: white; 
-            color: #1e293b;
-            max-width: 800px; 
-            margin: 30px auto; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            page-break-after: always;
-        }
-        .header { 
-            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); 
-            padding: 30px; 
-            text-align: center; 
-            color: white; 
-            position: relative;
-        }
-        .event-tag { 
-            background: rgba(255,255,255,0.1); 
-            padding: 5px 15px; 
-            border-radius: 50px; 
-            font-size: 0.8rem; 
-            display: inline-block;
-            margin-bottom: 15px;
-            backdrop-filter: blur(5px);
-        }
-        .header h1 { margin: 0; font-size: 2rem; letter-spacing: 1px; }
-        .header h2 { margin: 5px 0 0; font-weight: 300; opacity: 0.8; }
+        body { font-family: 'Inter', sans-serif; padding: 40px; background: #f1f5f9; color: #1e293b; margin: 0; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
         
-        .content { padding: 40px; }
+        .main-header { text-align: center; border-bottom: 2px solid #e2e8f0; margin-bottom: 30px; padding-bottom: 20px; }
+        .main-header h1 { margin: 0; color: #1e1b4b; font-size: 1.5rem; text-transform: uppercase; }
+        .main-header p { margin: 5px 0; color: #64748b; font-size: 0.9rem; }
         
-        .info-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 20px; 
-            margin-bottom: 40px;
-            text-align: center;
-        }
-        .info-box { 
-            background: #f1f5f9; 
-            padding: 20px; 
-            border-radius: 15px; 
+        .group-section { margin-bottom: 40px; }
+        .group-header { 
+            background: #f8fafc; 
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
             border: 1px solid #e2e8f0;
+            margin-bottom: 15px;
         }
-        .info-box .label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 5px; }
-        .info-box .value { font-size: 1.2rem; color: #0f172a; font-weight: 700; }
-        .venue-value { color: #ef4444 !important; }
+        .group-header h2 { margin: 0; font-size: 1.1rem; color: #1e1b4b; }
+        .group-meta { font-size: 0.85rem; color: #64748b; }
         
-        .table-container { border: 1px solid #e2e8f0; border-radius: 15px; overflow: hidden; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #1e293b; color: white; text-align: left; padding: 15px; font-size: 0.9rem; }
-        td { padding: 15px; border-bottom: 1px solid #f1f5f9; }
-        tr:last-child td { border-bottom: none; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.9rem; }
+        th { background: #1e1b4b; color: white; text-align: left; padding: 10px 15px; font-weight: 600; }
+        td { padding: 8px 15px; border-bottom: 1px solid #f1f5f9; }
+        tr:nth-child(even) { background: #fcfdfe; }
         
-        .chest-badge { 
-            background: #e0e7ff; 
-            color: #4338ca; 
-            padding: 5px 10px; 
-            border-radius: 8px; 
-            font-weight: 700;
-        }
+        .chest-no { font-weight: 700; color: #4338ca; }
         .status-badge {
             font-size: 0.7rem;
             font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 50px;
+            padding: 2px 8px;
+            border-radius: 4px;
             background: #dcfce7;
             color: #15803d;
             text-transform: uppercase;
         }
         
-        .instructions {
-            margin-top: 40px;
-            padding: 25px;
+        .instruction-box {
+            font-size: 0.85rem;
+            padding: 12px;
             background: #fffbeb;
-            border-left: 5px solid #f59e0b;
-            border-radius: 10px;
+            border-left: 4px solid #f59e0b;
+            color: #92400e;
+            border-radius: 4px;
         }
-        .instructions h3 { margin-top: 0; color: #92400e; font-size: 1rem; }
-        .instructions p { margin: 0; font-size: 0.95rem; color: #b45309; line-height: 1.5; }
-        
-        .footer { 
-            text-align: center; 
-            padding: 20px; 
-            background: #f8fafc; 
-            font-size: 0.8rem; 
-            color: #94a3b8; 
-            border-top: 1px solid #e2e8f0;
-        }
-        
-        @media print { 
-            body { background: white; padding: 0; } 
-            .group-card { box-shadow: none; margin: 0; width: 100%; max-width: none; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; border: none; width: 100%; max-width: none; padding: 20px; }
+            .group-section { page-break-inside: avoid; }
         }
     </style>
 </head>
 <body>
-    ${groups.map(group => `
-        <div class="group-card">
-            <div class="header">
-                <div class="event-tag">#VERBAFEST2026</div>
-                <h1>${group.groupName}</h1>
-                <h2>Official Assignment Sheet</h2>
-            </div>
-            
-            <div class="content">
-                <div class="info-grid">
-                    <div class="info-box">
-                        <div class="label">Group No</div>
-                        <div class="value">#${group.groupNumber}</div>
-                    </div>
-                    <div class="info-box">
-                        <div class="label">Panel Name</div>
-                        <div class="value">${group.panelId?.panelName || 'N/A'}</div>
-                    </div>
-                    <div class="info-box">
-                        <div class="label">VENUE</div>
-                        <div class="value venue-value">${group.panelId?.venue || 'TBA'}</div>
-                    </div>
-                </div>
+    <div class="container">
+        <div class="main-header">
+            <h1>Verbafest 2026</h1>
+            <p>Official Group Assignment Report</p>
+            <p style="font-size: 0.75rem;">Generated: ${new Date().toLocaleString()}</p>
+        </div>
 
-                <h3 style="margin-bottom: 20px; color: #1e293b;">Team Members</h3>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Chest No</th>
-                                <th>Student Name</th>
-                                <th>PRN</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${group.participants?.map(p => `
-                                <tr>
-                                    <td><span class="chest-badge">${p.chestNumber || '-'}</span></td>
-                                    <td><strong style="color: #0f172a;">${p.fullName}</strong></td>
-                                    <td>${p.prn || '-'}</td>
-                                    <td><span class="status-badge">${p.currentStatus}</span></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+        ${groups.map(group => `
+            <div class="group-section">
+                <div class="group-header">
+                    <h2>${group.groupName} (#${group.groupNumber})</h2>
+                    <div class="group-meta">
+                        <strong>Panel:</strong> ${group.panelId?.panelName || 'TBA'} | 
+                        <strong>Venue:</strong> <span style="color: #ef4444;">${group.panelId?.venue || 'TBA'}</span>
+                    </div>
                 </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Chest No</th>
+                            <th>Student Name</th>
+                            <th>Registration ID</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${group.participants?.map(p => `
+                            <tr>
+                                <td class="chest-no">${p.chestNumber || '-'}</td>
+                                <td><strong>${p.fullName}</strong></td>
+                                <td>${p.prn || '-'}</td>
+                                <td><span class="status-badge">${p.currentStatus}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
 
                 ${group.panelId?.instructions ? `
-                    <div class="instructions">
-                        <h3>PANEL INSTRUCTIONS</h3>
-                        <p>${group.panelId.instructions}</p>
+                    <div class="instruction-box">
+                        <strong>Instructions:</strong> ${group.panelId.instructions}
                     </div>
                 ` : ''}
             </div>
-
-            <div class="footer">
-                Generation Time: ${new Date().toLocaleString()} | Official Verbafest Team Management Document
-            </div>
-        </div>
-    `).join('')}
+        `).join('')}
+    </div>
 </body>
 </html>
     `;
@@ -289,3 +216,4 @@ function generateGroupHTML(groups, options = {}) {
 }
 
 module.exports = { generateGroupPDF, generateGroupHTML };
+
