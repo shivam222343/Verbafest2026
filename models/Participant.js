@@ -126,7 +126,7 @@ const ParticipantSchema = new mongoose.Schema({
             },
             markedBy: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'Admin'
+                ref: 'User'
             }
         },
         // Sub-event specific attendance
@@ -145,7 +145,7 @@ const ParticipantSchema = new mongoose.Schema({
             },
             markedBy: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'Admin'
+                ref: 'User'
             }
         }]
     },

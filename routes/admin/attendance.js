@@ -37,7 +37,7 @@ router.get('/overall', async (req, res) => {
 
         const participants = await Participant.find(query)
             .populate('registeredSubEvents', 'name')
-            .populate('attendance.overall.markedBy', 'fullName')
+            .populate('attendance.overall.markedBy', 'name')
             .select('fullName email mobile college branch year registeredSubEvents attendance')
             .sort({ fullName: 1 });
 
@@ -369,7 +369,7 @@ router.get('/export/pdf', async (req, res) => {
         } else {
             participants = await Participant.find()
                 .populate('registeredSubEvents', 'name')
-                .populate('attendance.overall.markedBy', 'fullName')
+                .populate('attendance.overall.markedBy', 'name')
                 .select('fullName email mobile college branch year attendance')
                 .sort({ fullName: 1 });
 
@@ -411,13 +411,13 @@ router.get('/export/csv', async (req, res) => {
 
             participants = await Participant.find({ registeredSubEvents: subEventId })
                 .populate('registeredSubEvents', 'name')
-                .populate('attendance.subEvents.markedBy', 'fullName')
+                .populate('attendance.subEvents.markedBy', 'name')
                 .select('fullName email mobile college branch year registeredSubEvents attendance')
                 .sort({ fullName: 1 });
         } else {
             participants = await Participant.find()
                 .populate('registeredSubEvents', 'name')
-                .populate('attendance.overall.markedBy', 'fullName')
+                .populate('attendance.overall.markedBy', 'name')
                 .select('fullName email mobile college branch year registeredSubEvents attendance')
                 .sort({ fullName: 1 });
         }

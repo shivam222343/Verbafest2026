@@ -38,13 +38,13 @@ function generateAttendanceCSV(participants, options = {}) {
             markedAt = subEventAttendance?.markedAt
                 ? new Date(subEventAttendance.markedAt).toLocaleString()
                 : '';
-            markedBy = subEventAttendance?.markedBy?.fullName || '';
+            markedBy = subEventAttendance?.markedBy?.name || '';
         } else {
             isPresent = participant.attendance?.overall?.isPresent || false;
             markedAt = participant.attendance?.overall?.markedAt
                 ? new Date(participant.attendance.overall.markedAt).toLocaleString()
                 : '';
-            markedBy = participant.attendance?.overall?.markedBy?.fullName || '';
+            markedBy = participant.attendance?.overall?.markedBy?.name || '';
         }
 
         const status = isPresent ? 'Present' : 'Absent';
