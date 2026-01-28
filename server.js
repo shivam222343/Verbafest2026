@@ -51,8 +51,9 @@ testCloudinaryConnection();
 
 // Middleware
 app.use(helmet({
-    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
-})); // Security headers with popup support
+    crossOriginOpenerPolicy: false, // Disable COOP to allow Firebase Auth popups
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+})); // Security headers with Firebase Auth support
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (like mobile apps or curl requests)
