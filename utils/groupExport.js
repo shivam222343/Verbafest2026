@@ -7,81 +7,100 @@ const PDFDocument = require('pdfkit');
  * @returns {PDFDocument} - PDF document stream
  */
 function generateGroupPDF(groups, options = {}) {
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
 
     groups.forEach((group, index) => {
         if (index > 0) doc.addPage();
 
-        // Header
-        doc.fontSize(22).font('Helvetica-Bold').text('Verbafest 2026', { align: 'center' });
-        doc.moveDown(0.3);
-        doc.fontSize(18).text('Group Assignment Sheet', { align: 'center' });
-        doc.moveDown(0.5);
-        doc.fontSize(10).font('Helvetica').text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+        // Banner Header
+        doc.rect(0, 0, 612, 100).fill('#1e1b4b');
+        doc.fillColor('white').fontSize(24).font('Helvetica-Bold').text('Verbafest 2026', 0, 35, { align: 'center' });
+        doc.fontSize(14).font('Helvetica').text('Official Group Registration Details', 0, 65, { align: 'center' });
+
+        doc.fillColor('black');
+        doc.moveDown(4);
+
+        // Group & Panel Header
+        doc.fontSize(18).font('Helvetica-Bold').text(`${group.groupName}`, { align: 'left' });
+        doc.fontSize(10).font('Helvetica').text(`Generated on: ${new Date().toLocaleString()}`, { align: 'right' });
+        doc.moveTo(40, doc.y + 10).lineTo(550, doc.y + 10).stroke('#e2e8f0');
         doc.moveDown(1.5);
 
-        // Group Content
-        doc.fontSize(14).font('Helvetica-Bold').text(`Group Info:`, { underline: true });
-        doc.moveDown(0.3);
-        doc.fontSize(12).font('Helvetica-Bold').text(`Group Name: `, { continued: true }).font('Helvetica').text(group.groupName);
-        doc.fontSize(12).font('Helvetica-Bold').text(`Group Number: `, { continued: true }).font('Helvetica').text(group.groupNumber.toString());
-        doc.moveDown(0.8);
+        // Team Info Info Box
+        const startY = doc.y;
+        doc.rect(40, startY, 515, 60).fill('#f8fafc').stroke('#e2e8f0');
 
-        // Panel Info
-        if (group.panelId) {
-            doc.fontSize(14).font('Helvetica-Bold').text(`Panel & Venue Info:`, { underline: true });
-            doc.moveDown(0.3);
-            doc.fontSize(12).font('Helvetica-Bold').text(`Panel Name: `, { continued: true }).font('Helvetica').text(group.panelId.panelName || 'N/A');
-            doc.fontSize(12).font('Helvetica-Bold').text(`Venue: `, { continued: true }).font('Helvetica').text(group.panelId.venue || 'N/A');
+        doc.fillColor('#1e293b').fontSize(10).font('Helvetica-Bold');
+        doc.text('GROUP NUMBER', 60, startY + 15);
+        doc.text('ASSIGNED PANEL', 200, startY + 15);
+        doc.text('VENUE / LOCATION', 400, startY + 15);
 
-            if (group.panelId.judges && group.panelId.judges.length > 0) {
-                doc.fontSize(12).font('Helvetica-Bold').text(`Judges: `);
-                group.panelId.judges.forEach(judge => {
-                    doc.fontSize(11).font('Helvetica').text(`- ${judge.name} (${judge.email})`, { indent: 20 });
-                });
-            }
-            doc.moveDown(0.8);
-        } else {
-            doc.fontSize(12).font('Helvetica-Bold').fillColor('#ef4444').text('No Panel Assigned Yet');
-            doc.fillColor('black');
-            doc.moveDown(0.8);
-        }
+        doc.fillColor('#475569').fontSize(12).font('Helvetica-Bold');
+        doc.text(`#${group.groupNumber}`, 60, startY + 30);
+        doc.text(group.panelId?.panelName || 'PENDING', 200, startY + 30);
+        doc.fillColor('#ef4444').text(group.panelId?.venue || 'TBA', 400, startY + 30);
+
+        doc.fillColor('black');
+        doc.moveDown(3);
 
         // Participants Table
-        doc.fontSize(14).font('Helvetica-Bold').text(`Participants (${group.participants?.length || 0}):`, { underline: true });
+        doc.fontSize(14).font('Helvetica-Bold').text('Team Members List');
         doc.moveDown(0.5);
 
         const tableTop = doc.y;
-        const col1X = 50;
-        const col2X = 100;
-        const col3X = 250;
-        const col4X = 400;
+        const col1X = 50;  // Chest No
+        const col2X = 120; // Full Name
+        const col3X = 300; // PRN
+        const col4X = 450; // Status
 
-        doc.fontSize(11).font('Helvetica-Bold');
-        doc.text('Chest No', col1X, tableTop);
-        doc.text('Full Name', col2X, tableTop);
-        doc.text('PRN / Email', col3X, tableTop);
-        doc.text('Status', col4X, tableTop);
+        // Table Header Background
+        doc.rect(40, tableTop - 5, 515, 25).fill('#1e1b4b');
+        doc.fillColor('white').fontSize(10).font('Helvetica-Bold');
+        doc.text('CHEST NO', col1X, tableTop);
+        doc.text('STUDENT NAME', col2X, tableTop);
+        doc.text('REGISTRATION ID', col3X, tableTop);
+        doc.text('STATUS', col4X, tableTop);
 
-        doc.moveTo(col1X, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+        let currentY = tableTop + 30;
+        doc.fillColor('black');
 
-        let currentY = tableTop + 25;
-        doc.font('Helvetica').fontSize(10);
+        group.participants?.forEach((p, i) => {
+            if (i % 2 === 0) {
+                doc.rect(40, currentY - 8, 515, 25).fill('#f1f5f9');
+                doc.fillColor('black');
+            }
 
-        group.participants?.forEach(p => {
-            doc.text(p.chestNumber?.toString() || '-', col1X, currentY);
-            doc.text(p.fullName || 'N/A', col2X, currentY);
-            doc.text(p.prn || p.email || 'N/A', col3X, currentY);
-            doc.text(p.currentStatus || 'N/A', col4X, currentY);
-            currentY += 20;
+            doc.font('Helvetica-Bold').fontSize(11).text(p.chestNumber?.toString() || '-', col1X, currentY);
+            doc.font('Helvetica').fontSize(10).text(p.fullName || 'N/A', col2X, currentY);
+            doc.text(p.prn || '-', col3X, currentY);
+
+            const status = p.currentStatus?.toUpperCase() || 'BUSY';
+            doc.font('Helvetica-Bold').fontSize(9).text(status, col4X, currentY);
+
+            currentY += 25;
         });
 
-        // Instructions Footer
-        if (group.panelId?.instructions) {
-            doc.moveDown(1.5);
-            doc.fontSize(12).font('Helvetica-Bold').text(`Instructions:`);
-            doc.fontSize(10).font('Helvetica').text(group.panelId.instructions);
+        // Judges Section
+        if (group.panelId?.judges && group.panelId.judges.length > 0) {
+            doc.moveDown(2);
+            doc.font('Helvetica-Bold').fontSize(12).text('Assigned Evaluation Committee:');
+            doc.font('Helvetica').fontSize(10);
+            group.panelId.judges.forEach(j => {
+                doc.text(`• ${j.name}`, { indent: 15 });
+            });
         }
+
+        // Instructions
+        if (group.panelId?.instructions) {
+            doc.moveDown(2);
+            doc.rect(40, doc.y, 515, 50).dash(5, { space: 2 }).stroke('#6366f1');
+            doc.fontSize(11).font('Helvetica-Bold').fillColor('#4338ca').text('IMPORTANT INSTRUCTIONS:', 50, doc.y + 10);
+            doc.fontSize(10).font('Helvetica').fillColor('#1e293b').text(group.panelId.instructions, 50, doc.y + 5);
+            doc.undash();
+        }
+
+        // Footer Branding
+        doc.fontSize(8).fillColor('#94a3b8').text('Verbafest 2026 Management System | Please report to your venue at least 10 minutes prior to start.', 0, 780, { align: 'center' });
     });
 
     return doc;
@@ -102,91 +121,165 @@ function generateGroupHTML(groups, options = {}) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Group Assignment Report</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f0f2f5; }
-        .page { background: white; max-width: 900px; margin: 20px auto; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); page-break-after: always; }
-        .header { text-align: center; border-bottom: 2px solid #667eea; padding-bottom: 20px; margin-bottom: 30px; }
-        .header h1 { color: #1a365d; margin: 0; }
-        .header h2 { color: #4a5568; font-weight: 500; font-size: 1.2rem; }
-        .section-title { font-size: 1.1rem; font-weight: 700; color: #2d3748; border-left: 4px solid #667eea; padding-left: 10px; margin: 20px 0 10px; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-        .info-item { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .label { font-size: 0.8rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
-        .value { font-size: 1.1rem; color: #1a202c; font-weight: 600; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background: #edf2f7; text-align: left; padding: 12px; font-weight: 600; color: #4a5568; }
-        td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-        .badge-chest { background: #ebf8ff; color: #2c5282; }
-        .instructions { background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; margin-top: 30px; }
-        @media print { body { background: white; padding: 0; } .page { box-shadow: none; margin: 0; width: 100%; max-width: none; } }
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+        
+        body { font-family: 'Outfit', sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; margin: 0; }
+        .group-card { 
+            background: white; 
+            color: #1e293b;
+            max-width: 800px; 
+            margin: 30px auto; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            page-break-after: always;
+        }
+        .header { 
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); 
+            padding: 30px; 
+            text-align: center; 
+            color: white; 
+            position: relative;
+        }
+        .event-tag { 
+            background: rgba(255,255,255,0.1); 
+            padding: 5px 15px; 
+            border-radius: 50px; 
+            font-size: 0.8rem; 
+            display: inline-block;
+            margin-bottom: 15px;
+            backdrop-filter: blur(5px);
+        }
+        .header h1 { margin: 0; font-size: 2rem; letter-spacing: 1px; }
+        .header h2 { margin: 5px 0 0; font-weight: 300; opacity: 0.8; }
+        
+        .content { padding: 40px; }
+        
+        .info-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 20px; 
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .info-box { 
+            background: #f1f5f9; 
+            padding: 20px; 
+            border-radius: 15px; 
+            border: 1px solid #e2e8f0;
+        }
+        .info-box .label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 5px; }
+        .info-box .value { font-size: 1.2rem; color: #0f172a; font-weight: 700; }
+        .venue-value { color: #ef4444 !important; }
+        
+        .table-container { border: 1px solid #e2e8f0; border-radius: 15px; overflow: hidden; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #1e293b; color: white; text-align: left; padding: 15px; font-size: 0.9rem; }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; }
+        tr:last-child td { border-bottom: none; }
+        
+        .chest-badge { 
+            background: #e0e7ff; 
+            color: #4338ca; 
+            padding: 5px 10px; 
+            border-radius: 8px; 
+            font-weight: 700;
+        }
+        .status-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 50px;
+            background: #dcfce7;
+            color: #15803d;
+            text-transform: uppercase;
+        }
+        
+        .instructions {
+            margin-top: 40px;
+            padding: 25px;
+            background: #fffbeb;
+            border-left: 5px solid #f59e0b;
+            border-radius: 10px;
+        }
+        .instructions h3 { margin-top: 0; color: #92400e; font-size: 1rem; }
+        .instructions p { margin: 0; font-size: 0.95rem; color: #b45309; line-height: 1.5; }
+        
+        .footer { 
+            text-align: center; 
+            padding: 20px; 
+            background: #f8fafc; 
+            font-size: 0.8rem; 
+            color: #94a3b8; 
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        @media print { 
+            body { background: white; padding: 0; } 
+            .group-card { box-shadow: none; margin: 0; width: 100%; max-width: none; }
+        }
     </style>
 </head>
 <body>
     ${groups.map(group => `
-        <div class="page">
+        <div class="group-card">
             <div class="header">
-                <h1>Verbafest 2026</h1>
-                <h2>Group Assignment Sheet</h2>
-                <div style="font-size: 0.8rem; color: #a0aec0; margin-top: 10px;">Generated on: ${new Date().toLocaleString()}</div>
+                <div class="event-tag">#VERBAFEST2026</div>
+                <h1>${group.groupName}</h1>
+                <h2>Official Assignment Sheet</h2>
+            </div>
+            
+            <div class="content">
+                <div class="info-grid">
+                    <div class="info-box">
+                        <div class="label">Group No</div>
+                        <div class="value">#${group.groupNumber}</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">Panel Name</div>
+                        <div class="value">${group.panelId?.panelName || 'N/A'}</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">VENUE</div>
+                        <div class="value venue-value">${group.panelId?.venue || 'TBA'}</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 20px; color: #1e293b;">Team Members</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Chest No</th>
+                                <th>Student Name</th>
+                                <th>PRN</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${group.participants?.map(p => `
+                                <tr>
+                                    <td><span class="chest-badge">${p.chestNumber || '-'}</span></td>
+                                    <td><strong style="color: #0f172a;">${p.fullName}</strong></td>
+                                    <td>${p.prn || '-'}</td>
+                                    <td><span class="status-badge">${p.currentStatus}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                ${group.panelId?.instructions ? `
+                    <div class="instructions">
+                        <h3>PANEL INSTRUCTIONS</h3>
+                        <p>${group.panelId.instructions}</p>
+                    </div>
+                ` : ''}
             </div>
 
-            <div class="section-title">Assignment Information</div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="label">Group Name</div>
-                    <div class="value">${group.groupName}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">Group Number</div>
-                    <div class="value">#${group.groupNumber}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">Assigned Panel</div>
-                    <div class="value">${group.panelId?.panelName || '<span style="color:#ef4444">NOT ASSIGNED</span>'}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">Venue</div>
-                    <div class="value">${group.panelId?.venue || '<span style="color:#ef4444">NOT ASSIGNED</span>'}</div>
-                </div>
+            <div class="footer">
+                Generation Time: ${new Date().toLocaleString()} | Official Verbafest Team Management Document
             </div>
-
-            <div class="section-title">Team Members</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Chest No</th>
-                        <th>Name</th>
-                        <th>PRN / Email</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${group.participants?.map(p => `
-                        <tr>
-                            <td><span class="badge badge-chest">${p.chestNumber || '-'}</span></td>
-                            <td><strong>${p.fullName}</strong></td>
-                            <td>${p.prn || p.email}</td>
-                            <td>${p.currentStatus}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-
-            ${group.panelId?.judges?.length > 0 ? `
-                <div class="section-title">Judges</div>
-                <div style="padding: 0 15px;">
-                    ${group.panelId.judges.map(j => `
-                        <div style="margin-bottom: 5px;">• ${j.name} (${j.email})</div>
-                    `).join('')}
-                </div>
-            ` : ''}
-
-            ${group.panelId?.instructions ? `
-                <div class="instructions">
-                    <div class="label">Panel Instructions</div>
-                    <div style="font-size: 0.9rem; color: #744210; margin-top: 5px;">${group.panelId.instructions}</div>
-                </div>
-            ` : ''}
         </div>
     `).join('')}
 </body>
