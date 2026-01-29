@@ -118,6 +118,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/registration', require('./routes/registration'));
 app.use('/api/payment-settings', require('./routes/paymentSettings'));
+app.use('/api/queries', require('./routes/queries'));
 app.use('/api/admin/participants', require('./routes/admin/participants'));
 app.use('/api/admin/subevents', require('./routes/admin/subevents'));
 app.use('/api/admin/rounds', require('./routes/admin/rounds'));
@@ -127,6 +128,7 @@ app.use('/api/admin/payment-settings', require('./routes/admin/paymentSettings')
 app.use('/api/admin/users', require('./routes/admin/manageAdmins'));
 app.use('/api/admin/groups', require('./routes/admin/groups'));
 app.use('/api/admin/attendance', require('./routes/admin/attendance'));
+app.use('/api/admin/queries', require('./routes/admin/queries'));
 app.use('/api/participant', require('./routes/participant'));
 app.use('/api/admin/panels', require('./routes/admin/panels'));
 app.use('/api/admin/topics', require('./routes/admin/topics'));
