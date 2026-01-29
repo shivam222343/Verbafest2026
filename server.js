@@ -20,6 +20,7 @@ const httpServer = createServer(app);
 const allowedOrigins = [
     'http://localhost:5173',
     'https://verbafest2026.netlify.app',
+    'https://verbafest2026.teammavericks.org',
     'https://verbafest2026-frontend-duz5.vercel.app',
     process.env.FRONTEND_URL
 ].filter(Boolean);
@@ -55,6 +56,8 @@ app.use(helmet({
     crossOriginOpenerPolicy: false, // Disable COOP to allow Firebase Auth popups
     crossOriginResourcePolicy: { policy: "cross-origin" }
 })); // Security headers with Firebase Auth support
+
+// Enhanced CORS configuration
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (like mobile apps or curl requests)
@@ -66,8 +69,31 @@ app.use(cors({
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 86400 // 24 hours
 }));
+
+// Additional CORS headers for preflight requests
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    }
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+
+    next();
+});
+
 app.use(express.json()); // Body parser
 app.use(express.urlencoded({ extended: true }));
 
