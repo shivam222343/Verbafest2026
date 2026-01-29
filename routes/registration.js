@@ -66,7 +66,7 @@ router.get('/form', async (req, res, next) => {
 // @route   POST /api/registration/submit
 // @desc    Submit participant registration
 // @access  Public
-router.post('/submit', uploadPaymentProof.single('paymentProof'), async (req, res, next) => {
+router.post('/submit', async (req, res, next) => {
     try {
         const {
             fullName,
@@ -78,7 +78,8 @@ router.post('/submit', uploadPaymentProof.single('paymentProof'), async (req, re
             college,
             selectedSubEvents, // Array of sub-event IDs
             transactionId,
-            paidAmount
+            paidAmount,
+            paymentProofUrl
         } = req.body;
 
         // Validate required fields
@@ -97,14 +98,11 @@ router.post('/submit', uploadPaymentProof.single('paymentProof'), async (req, re
             });
         }
 
-        // Parse selectedSubEvents if it's a string
-        const subEventIds = typeof selectedSubEvents === 'string'
-            ? JSON.parse(selectedSubEvents)
-            : selectedSubEvents;
+        // selectedSubEvents is already an array from JSON
+        const subEventIds = selectedSubEvents;
 
-        // Validate payment proof
-        const finalPaymentProofUrl = req.file ? req.file.path : req.body.paymentProofUrl;
-        if (!finalPaymentProofUrl) {
+        // Validate payment proof URL
+        if (!paymentProofUrl) {
             return res.status(400).json({
                 success: false,
                 message: 'Please upload payment proof'
@@ -185,7 +183,7 @@ router.post('/submit', uploadPaymentProof.single('paymentProof'), async (req, re
             registeredSubEvents: subEventIds,
             transactionId,
             paidAmount,
-            paymentProofUrl: finalPaymentProofUrl,
+            paymentProofUrl: paymentProofUrl,
             registrationStatus: 'pending',
             password: generatedPassword
         });
