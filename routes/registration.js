@@ -38,7 +38,8 @@ router.get('/payment-settings', async (req, res, next) => {
             data: {
                 upiId: paymentSettings.upiId,
                 accountName: paymentSettings.accountName,
-                qrCodeUrl: systemSettings?.allEventsQrCodeUrl || systemSettings?.singleEventQrCodeUrl,
+                singleEventQrCodeUrl: systemSettings?.singleEventQrCodeUrl,
+                allEventsQrCodeUrl: systemSettings?.allEventsQrCodeUrl,
                 basePrice: systemSettings?.comboPrice || 100,
                 bulkDiscount: paymentSettings.bulkRegistrationDiscount.enabled
                     ? paymentSettings.bulkRegistrationDiscount.discountValue

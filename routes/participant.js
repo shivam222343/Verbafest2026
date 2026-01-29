@@ -61,6 +61,7 @@ router.get('/me', protect, async (req, res, next) => {
                 college: participant.college,
                 registrationStatus: participant.registrationStatus,
                 rejectionReason: participant.rejectionReason,
+                paidAmount: participant.paidAmount,
                 currentStatus: participant.currentStatus,
                 registeredSubEvents: enrichedSubEvents
             }
