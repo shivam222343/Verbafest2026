@@ -5,6 +5,7 @@ const Participant = require('../models/Participant');
 const { uploadPaymentProof } = require('../middleware/upload');
 
 const SystemSettings = require('../models/SystemSettings');
+const PaymentSettings = require('../models/PaymentSettings');
 
 // @route   POST /api/registration/upload-proof
 // @desc    Upload payment proof immediately
@@ -17,6 +18,36 @@ router.post('/upload-proof', uploadPaymentProof.single('paymentProof'), async (r
         res.status(200).json({
             success: true,
             url: req.file.path
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// @route   GET /api/registration/payment-settings
+// @desc    Get payment settings for re-registration
+// @access  Public
+router.get('/payment-settings', async (req, res, next) => {
+    try {
+        const paymentSettings = await PaymentSettings.getActiveSettings();
+        const systemSettings = await SystemSettings.findOne({ key: 'core_settings' })
+            .select('allEventsQrCodeUrl singleEventQrCodeUrl comboPrice');
+
+        res.status(200).json({
+            success: true,
+            data: {
+                upiId: paymentSettings.upiId,
+                accountName: paymentSettings.accountName,
+                qrCodeUrl: systemSettings?.allEventsQrCodeUrl || systemSettings?.singleEventQrCodeUrl,
+                basePrice: systemSettings?.comboPrice || 100,
+                bulkDiscount: paymentSettings.bulkRegistrationDiscount.enabled
+                    ? paymentSettings.bulkRegistrationDiscount.discountValue
+                    : 0,
+                // Add bank details from system settings if available
+                accountNumber: systemSettings?.accountNumber || 'Not configured',
+                ifscCode: systemSettings?.ifscCode || 'Not configured',
+                bankName: systemSettings?.bankName || 'Not configured'
+            }
         });
     } catch (error) {
         next(error);
