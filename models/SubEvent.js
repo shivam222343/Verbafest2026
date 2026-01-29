@@ -76,6 +76,11 @@ const SubEventSchema = new mongoose.Schema({
         enum: ['mindSaga', 'gd', 'debate'],
         default: 'mindSaga'
     },
+    // WhatsApp group link for participants
+    whatsappGroupLink: {
+        type: String,
+        default: ''
+    },
     // Rounds will be added dynamically
     rounds: [{
         type: mongoose.Schema.Types.ObjectId,

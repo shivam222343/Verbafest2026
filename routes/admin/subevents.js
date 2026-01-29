@@ -64,7 +64,8 @@ router.post('/', async (req, res, next) => {
             registrationDeadline,
             startTime,
             accentColor,
-            registrationPrice
+            registrationPrice,
+            whatsappGroupLink
         } = req.body;
 
         // Validate required fields
@@ -94,7 +95,8 @@ router.post('/', async (req, res, next) => {
             registrationDeadline,
             startTime,
             accentColor: accentColor || 'mindSaga',
-            registrationPrice: registrationPrice || 50
+            registrationPrice: registrationPrice || 50,
+            whatsappGroupLink: whatsappGroupLink || ''
         });
 
         // Emit socket event
@@ -138,7 +140,8 @@ router.put('/:id', async (req, res, next) => {
             registrationDeadline,
             startTime,
             accentColor,
-            registrationPrice
+            registrationPrice,
+            whatsappGroupLink
         } = req.body;
 
         // Update fields
@@ -152,6 +155,7 @@ router.put('/:id', async (req, res, next) => {
         if (startTime !== undefined) subEvent.startTime = startTime;
         if (accentColor) subEvent.accentColor = accentColor;
         if (registrationPrice !== undefined) subEvent.registrationPrice = registrationPrice;
+        if (whatsappGroupLink !== undefined) subEvent.whatsappGroupLink = whatsappGroupLink;
 
         await subEvent.save();
 

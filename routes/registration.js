@@ -170,8 +170,8 @@ router.post('/submit', uploadPaymentProof.single('paymentProof'), async (req, re
             });
         }
 
-        // Generate a random password for the participant
-        const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
+        // Use mobile number as password for easier login
+        const generatedPassword = mobile;
 
         // Create participant
         const participant = await Participant.create({
@@ -216,7 +216,12 @@ router.post('/submit', uploadPaymentProof.single('paymentProof'), async (req, re
                     email: participant.email,
                     prn: participant.prn,
                     registrationStatus: participant.registrationStatus,
-                    password: generatedPassword // Return the plain password once
+                    password: generatedPassword, // Return the plain password once
+                    registeredSubEvents: subEvents.map(event => ({
+                        _id: event._id,
+                        name: event.name,
+                        whatsappGroupLink: event.whatsappGroupLink
+                    }))
                 }
             }
         });
