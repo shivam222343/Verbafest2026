@@ -27,6 +27,10 @@ const systemSettingsSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    twoEventsQrCodeUrl: {
+        type: String,
+        default: ''
+    },
     allEventsQrCodeUrl: {
         type: String,
         default: ''
