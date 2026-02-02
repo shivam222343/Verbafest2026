@@ -5,6 +5,7 @@ const SubEvent = require('../../models/SubEvent');
 const Round = require('../../models/Round');
 const Group = require('../../models/Group');
 const { protect, authorize } = require('../../middleware/auth');
+const { generateParticipantCSV, generateParticipantHTML } = require('../../utils/participantExport');
 
 // All routes are protected and require admin role
 router.use(protect);
@@ -15,7 +16,7 @@ router.use(authorize('admin'));
 // @access  Private (Admin)
 router.get('/', async (req, res, next) => {
     try {
-        const { status, subEvent, search, page = 1, limit = 20 } = req.query;
+        const { status, subEvent, search, page = 1, limit = 1000 } = req.query;
 
         // Build query
         const query = {};
@@ -52,6 +53,54 @@ router.get('/', async (req, res, next) => {
             currentPage: parseInt(page),
             data: participants
         });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// @route   GET /api/admin/participants/export
+// @desc    Export participants data
+// @access  Private (Admin)
+router.get('/export', async (req, res, next) => {
+    try {
+        const { status, subEvents, format = 'csv' } = req.query;
+
+        const query = {};
+        if (status) {
+            query.registrationStatus = status;
+        }
+
+        if (subEvents && subEvents !== 'all') {
+            const ids = Array.isArray(subEvents) ? subEvents : subEvents.split(',');
+            query.registeredSubEvents = { $in: ids };
+        }
+
+        const participants = await Participant.find(query)
+            .populate('registeredSubEvents', 'name')
+            .sort({ chestNumber: 1 });
+
+        // Get sub-event names for the map
+        const subEventsData = await SubEvent.find({}, 'name');
+        const subEventMap = {};
+        subEventsData.forEach(se => {
+            subEventMap[se._id.toString()] = se.name;
+        });
+
+        if (format === 'csv') {
+            const csvData = generateParticipantCSV(participants, { subEventMap });
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename=participants-${Date.now()}.csv`);
+            return res.status(200).send(csvData);
+        } else if (format === 'html') {
+            const htmlData = generateParticipantHTML(participants, {
+                title: 'Exported Participant List',
+                subEventMap
+            });
+            res.setHeader('Content-Type', 'text/html');
+            return res.status(200).send(htmlData);
+        }
+
+        res.status(400).json({ success: false, message: 'Invalid format' });
     } catch (error) {
         next(error);
     }

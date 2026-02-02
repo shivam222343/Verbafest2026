@@ -20,7 +20,7 @@ router.get('/me', protect, async (req, res, next) => {
         const participant = await Participant.findById(req.user.id)
             .populate({
                 path: 'registeredSubEvents',
-                select: 'name description type accentColor status'
+                select: 'name description type accentColor status whatsappGroupLink'
             });
 
         if (!participant) {

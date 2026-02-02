@@ -12,7 +12,7 @@ router.use(authorize('admin'));
 // @access  Private (Admin)
 router.get('/', async (req, res, next) => {
     try {
-        const { status, page = 1, limit = 20 } = req.query;
+        const { status, page = 1, limit = 1000 } = req.query;
 
         const filter = {};
         if (status) {
