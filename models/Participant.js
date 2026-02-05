@@ -65,6 +65,16 @@ const ParticipantSchema = new mongoose.Schema({
         default: 'incomplete'
     },
 
+    isReRegistration: {
+        type: Boolean,
+        default: false
+    },
+
+    pendingSubEvents: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SubEvent'
+    }],
+
     // Payment Information
     transactionId: {
         type: String,

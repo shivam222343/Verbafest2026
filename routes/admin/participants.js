@@ -113,6 +113,7 @@ router.get('/pending', async (req, res, next) => {
     try {
         const participants = await Participant.find({ registrationStatus: 'pending' })
             .populate('registeredSubEvents', 'name type accentColor')
+            .populate('pendingSubEvents', 'name type')
             .sort({ createdAt: -1 });
 
         res.status(200).json({
@@ -186,6 +187,25 @@ router.put('/:id/approve', async (req, res, next) => {
                 success: false,
                 message: 'Participant is already approved'
             });
+        }
+
+        if (participant.isReRegistration && participant.pendingSubEvents && participant.pendingSubEvents.length > 0) {
+            // Merge pending sub-events into registered ones
+            const newEvents = participant.pendingSubEvents.filter(id => !participant.registeredSubEvents.includes(id));
+            participant.registeredSubEvents = [...participant.registeredSubEvents, ...newEvents];
+
+            // Initialize status for new sub-events
+            for (const subEventId of newEvents) {
+                participant.statusPerSubEvent.set(subEventId.toString(), {
+                    status: 'not_started',
+                    currentRound: null,
+                    roundNumber: 0
+                });
+            }
+
+            // Reset re-registration flags
+            participant.isReRegistration = false;
+            participant.pendingSubEvents = [];
         }
 
         participant.registrationStatus = 'approved';

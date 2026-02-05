@@ -46,6 +46,25 @@ router.get('/', async (req, res) => {
             capacity: se.maxParticipants || 0
         })).sort((a, b) => b.registrations - a.registrations);
 
+        // Participation Distribution
+        const participationCounts = participants.filter(p => p.registrationStatus === 'approved').reduce((acc, p) => {
+            const count = p.registeredSubEvents.length;
+            acc[count] = (acc[count] || 0) + 1;
+            return acc;
+        }, {});
+
+        const participationStats = Object.entries(participationCounts).map(([count, participants]) => ({
+            eventCount: `${count} Event${count > 1 ? 's' : ''}`,
+            participants
+        }));
+
+        // Registered for all events
+        const totalActiveSubEvents = subEvents.filter(se => se.isActiveForRegistration).length;
+        const registeredForAllCount = participants.filter(p =>
+            p.registrationStatus === 'approved' &&
+            p.registeredSubEvents.length >= totalActiveSubEvents
+        ).length;
+
         res.json({
             success: true,
             data: {
@@ -55,7 +74,9 @@ router.get('/', async (req, res) => {
                 activeRounds: rounds.filter(r => r.status === 'active').length,
                 trendData,
                 statusDistribution,
-                subEventPop
+                subEventPop,
+                participationStats,
+                registeredForAllCount
             }
         });
     } catch (err) {
