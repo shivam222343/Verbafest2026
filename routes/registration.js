@@ -61,8 +61,18 @@ router.get('/payment-settings', async (req, res, next) => {
 // @access  Public
 router.get('/settings', async (req, res, next) => {
     try {
-        const settings = await SystemSettings.findOne({ key: 'core_settings' })
+        let settings = await SystemSettings.findOne({ key: 'core_settings' })
             .select('eventName eventDate registrationDeadline isRegistrationOpen pauseRegistrations singleEventQrCodeUrl twoEventsQrCodeUrl allEventsQrCodeUrl contactEmail availableStreams availableColleges comboPrice showSubEventsOnPublicPage publicSubEventsBannerUrl');
+
+        if (!settings) {
+            settings = {
+                eventName: 'VerbaFest 2026',
+                isRegistrationOpen: true,
+                pauseRegistrations: false,
+                availableStreams: ['Computer Science and Engineering'],
+                availableColleges: ["Kit's college of enginnering, Kolhapur"]
+            };
+        }
 
         res.status(200).json({
             success: true,
