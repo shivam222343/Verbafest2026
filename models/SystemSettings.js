@@ -54,6 +54,10 @@ const systemSettingsSchema = new mongoose.Schema({
     publicSubEventsBannerUrl: {
         type: String,
         default: ''
+    },
+    pauseRegistrations: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

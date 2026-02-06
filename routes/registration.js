@@ -62,7 +62,7 @@ router.get('/payment-settings', async (req, res, next) => {
 router.get('/settings', async (req, res, next) => {
     try {
         const settings = await SystemSettings.findOne({ key: 'core_settings' })
-            .select('eventName eventDate registrationDeadline isRegistrationOpen singleEventQrCodeUrl twoEventsQrCodeUrl allEventsQrCodeUrl contactEmail availableStreams availableColleges comboPrice showSubEventsOnPublicPage publicSubEventsBannerUrl');
+            .select('eventName eventDate registrationDeadline isRegistrationOpen pauseRegistrations singleEventQrCodeUrl twoEventsQrCodeUrl allEventsQrCodeUrl contactEmail availableStreams availableColleges comboPrice showSubEventsOnPublicPage publicSubEventsBannerUrl');
 
         res.status(200).json({
             success: true,
@@ -114,6 +114,15 @@ router.post('/submit', async (req, res, next) => {
             paidAmount,
             paymentProofUrl
         } = req.body;
+
+        // Check if registrations are paused
+        const systemSettings = await SystemSettings.findOne({ key: 'core_settings' });
+        if (systemSettings?.pauseRegistrations) {
+            return res.status(403).json({
+                success: false,
+                message: 'Registrations are currently closed as per admin instructions.'
+            });
+        }
 
         // Validate required fields
         if (!fullName || !email || !mobile || !prn || !branch || !year || !college || !transactionId) {
