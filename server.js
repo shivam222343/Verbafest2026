@@ -22,9 +22,10 @@ const allowedOrigins = [
     'https://verbafest2026.netlify.app',
     'https://verbafest-2026.netlify.app',
     'https://verbafest2026.teammavericks.org',
+    'https://www.verbafest2026.teammavericks.org',
     'https://verbafest2026-frontend-duz5.vercel.app',
     process.env.FRONTEND_URL
-].filter(Boolean);
+].filter(Boolean).map(url => url.replace(/\/$/, '')); // Normalize by removing trailing slashes
 
 const io = new Server(httpServer, {
     cors: {
@@ -65,10 +66,12 @@ app.use(cors({
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.includes(origin)) {
+        const normalizedOrigin = origin.replace(/\/$/, '');
+        if (allowedOrigins.includes(normalizedOrigin)) {
             callback(null, true);
         } else {
             console.log('CORS Blocked for origin:', origin);
+            console.log('Allowed Origins were:', allowedOrigins);
             callback(null, false);
         }
     },
@@ -138,6 +141,9 @@ app.use('/api/admin/topics', require('./routes/admin/topics'));
 app.use('/api/judge', require('./routes/judge'));
 
 // Socket.IO connection handling
+if (!process.env.JWT_SECRET) {
+    console.error('CRITICAL WARNING: JWT_SECRET environment variable is not set! Token verification will fail.');
+}
 io.on('connection', (socket) => {
     console.log(`✅ Socket connected: ${socket.id}`);
 
