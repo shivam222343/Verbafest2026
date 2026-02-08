@@ -85,13 +85,17 @@ router.post('/auto-form', async (req, res, next) => {
             });
         }
 
-        // Check if event type is group
-        if (subEvent.type !== 'group') {
-            return res.status(400).json({
-                success: false,
-                message: 'This sub-event is not a group event'
-            });
+        // Determine group size
+        let targetSize = groupSize;
+        if (subEvent.type === 'individual') {
+            targetSize = 1;
+        } else {
+            const minSize = subEvent.groupSizeRange?.min || 2;
+            const maxSize = subEvent.groupSizeRange?.max || 5;
+            targetSize = groupSize || Math.floor((minSize + maxSize) / 2);
         }
+
+        const minSize = subEvent.type === 'individual' ? 1 : (subEvent.groupSizeRange?.min || 2);
 
         // Get participants for this round
         let participantQuery = {
@@ -140,11 +144,6 @@ router.post('/auto-form', async (req, res, next) => {
                 message: 'No unassigned participants available for this round'
             });
         }
-
-        // Determine group size
-        const minSize = subEvent.groupSizeRange?.min || 2;
-        const maxSize = subEvent.groupSizeRange?.max || 5;
-        const targetSize = groupSize || Math.floor((minSize + maxSize) / 2);
 
         // Get current max group number for this round to avoid collision
         let currentGroupNumber = 1;

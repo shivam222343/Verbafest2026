@@ -330,6 +330,14 @@ router.post('/select-for-next-round', async (req, res, next) => {
             { selectedForNextRound: true }
         );
 
+        // Emit socket event to admin room for real-time updates
+        const io = req.app.get('io');
+        io.to('admin').emit('groups:selected_by_judge', {
+            panelId: panel._id,
+            judgeName: judge.name,
+            selectedGroupIds: selectedGroupIds
+        });
+
         res.status(200).json({
             success: true,
             message: `Selected ${selectedGroupIds.length} groups for next round`

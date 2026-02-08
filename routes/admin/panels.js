@@ -168,7 +168,21 @@ router.put('/:id', async (req, res, next) => {
         } = req.body;
 
         if (panelName) panel.panelName = panelName;
-        if (judges) panel.judges = judges;
+        if (judges) {
+            // Process judges to ensure they have access codes
+            panel.judges = judges.map(judge => {
+                if (judge.accessCode) {
+                    return judge; // Keep existing judge with their code
+                } else {
+                    // New judge added during edit - generate code
+                    return {
+                        ...judge,
+                        accessCode: Math.random().toString(36).substring(2, 10).toUpperCase(),
+                        hasAccessed: false
+                    };
+                }
+            });
+        }
         if (evaluationParameters) panel.evaluationParameters = evaluationParameters;
         if (venue) panel.venue = venue;
         if (instructions) panel.instructions = instructions;
