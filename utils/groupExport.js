@@ -8,6 +8,30 @@ const PDFDocument = require('pdfkit');
 function generateGroupPDF(groups) {
     const doc = new PDFDocument({ margin: 30, size: 'A4' });
 
+    // Helper to draw background logo
+    const drawBackgroundLogo = () => {
+        try {
+            const logoPath = require('path').join(__dirname, '../../frontend/public/Mavericks_Logo.png');
+            doc.save();
+            doc.opacity(0.12); // Slightly more subtle for detailed group reports
+            const pageWidth = doc.page.width;
+            const pageHeight = doc.page.height;
+            const logoSize = 400;
+            doc.image(logoPath, (pageWidth - logoSize) / 2, (pageHeight - logoSize) / 2, { width: logoSize });
+            doc.restore();
+        } catch (err) {
+            console.error('Group PDF Logo Error:', err);
+        }
+    };
+
+    // Draw on first page
+    drawBackgroundLogo();
+
+    // Listen for new pages
+    doc.on('pageAdded', () => {
+        drawBackgroundLogo();
+    });
+
     // Document Header (Only once at the start)
     doc.fillColor('#1e1b4b').fontSize(16).font('Helvetica-Bold').text('Verbafest 2026', { align: 'center' });
     doc.fillColor('#475569').fontSize(10).font('Helvetica').text('Official Group Registration Report', { align: 'center' });
@@ -99,6 +123,16 @@ function generateGroupPDF(groups) {
  * @returns {String} - HTML string
  */
 function generateGroupHTML(groups) {
+    let logoBase64 = '';
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const logoPath = path.join(__dirname, '../../frontend/public/Mavericks_Logo.png');
+        logoBase64 = fs.readFileSync(logoPath).toString('base64');
+    } catch (err) {
+        console.error('Logo Read Error for HTML:', err);
+    }
+
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -109,8 +143,42 @@ function generateGroupHTML(groups) {
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         
-        body { font-family: 'Inter', sans-serif; padding: 40px; background: #f1f5f9; color: #1e293b; margin: 0; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            padding: 40px; 
+            background: #f1f5f9; 
+            color: #1e293b; 
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background-image: url('data:image/png;base64,${logoBase64}');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.12;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: rgba(255, 255, 255, 0.9); 
+            padding: 40px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+        }
         
         .main-header { text-align: center; border-bottom: 2px solid #e2e8f0; margin-bottom: 30px; padding-bottom: 20px; }
         .main-header h1 { margin: 0; color: #1e1b4b; font-size: 1.5rem; text-transform: uppercase; }
@@ -163,6 +231,7 @@ function generateGroupHTML(groups) {
     </style>
 </head>
 <body>
+    <div class="watermark"></div>
     <div class="container">
         <div class="main-header">
             <h1>Verbafest 2026</h1>

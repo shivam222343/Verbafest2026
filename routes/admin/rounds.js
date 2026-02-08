@@ -3,6 +3,8 @@ const router = express.Router();
 const Round = require('../../models/Round');
 const SubEvent = require('../../models/SubEvent');
 const Participant = require('../../models/Participant');
+const { generateParticipantCSV, generateParticipantHTML } = require('../../utils/participantExport');
+const { generateNominatedPDF } = require('../../utils/pdfExport');
 
 // @desc    Get all rounds for a sub-event
 // @route   GET /api/admin/rounds/subevent/:subEventId
@@ -386,6 +388,122 @@ router.delete('/:id', async (req, res) => {
         res.json({ success: true, message: 'Round and all related data deleted' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// @desc    Manually promote specific participants to next round
+// @route   POST /api/admin/rounds/:id/manual-nominate
+router.post('/:id/manual-nominate', async (req, res) => {
+    try {
+        const { participantIds } = req.body;
+        const currentRound = await Round.findById(req.params.id);
+        if (!currentRound) return res.status(404).json({ success: false, message: 'Round not found' });
+
+        const nextRoundNumber = currentRound.roundNumber + 1;
+        const nextRound = await Round.findOne({
+            subEvent: currentRound.subEvent,
+            roundNumber: nextRoundNumber
+        });
+
+        if (!nextRound) {
+            return res.status(400).json({
+                success: false,
+                message: `Next round (Round ${nextRoundNumber}) not found. Please create it first.`
+            });
+        }
+
+        // Update next round's participants (avoid duplicates)
+        participantIds.forEach(id => {
+            const exists = nextRound.participants.some(p => p.toString() === id.toString());
+            if (!exists) {
+                nextRound.participants.push(id);
+            }
+        });
+
+        // Also update current round's winners
+        currentRound.winners = participantIds;
+
+        // Update participants status
+        await Participant.updateMany(
+            { _id: { $in: participantIds } },
+            {
+                $set: {
+                    currentStatus: 'qualified',
+                    [`statusPerSubEvent.${currentRound.subEvent}.status`]: 'qualified'
+                }
+            }
+        );
+
+        await Promise.all([nextRound.save(), currentRound.save()]);
+
+        // Notify participants
+        const io = req.app.get('io');
+        if (io) {
+            participantIds.forEach(id => {
+                io.to(`participant:${id}`).emit('participant:status_updated', {
+                    message: `Congratulations! You have been manually qualified for Round ${nextRoundNumber}!`,
+                    status: 'qualified'
+                });
+            });
+            io.emit('availability_update');
+        }
+
+        res.json({
+            success: true,
+            message: `Nominated ${participantIds.length} students to Round ${nextRoundNumber}`,
+            data: nextRound
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// @desc    Export winners of a round
+// @route   GET /api/admin/rounds/:id/export-winners
+router.get('/:id/export-winners', async (req, res, next) => {
+    try {
+        const { format = 'csv' } = req.query;
+        const round = await Round.findById(req.params.id)
+            .populate('subEvent', 'name')
+            .populate('winners');
+
+        if (!round) {
+            return res.status(404).json({ success: false, message: 'Round not found' });
+        }
+
+        const winners = round.winners;
+        const title = `Nominated Participants - ${round.subEvent.name}`;
+
+        // Get sub-event map for the export util
+        const subEvents = await SubEvent.find({}, 'name');
+        const subEventMap = {};
+        subEvents.forEach(se => subEventMap[se._id.toString()] = se.name);
+
+        if (format === 'csv') {
+            const csvData = generateParticipantCSV(winners, { subEventMap, type: 'nominated' });
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename=nominated-${round.subEvent.name.replace(/\s+/g, '_')}-${Date.now()}.csv`);
+            return res.status(200).send(csvData);
+        } else if (format === 'html') {
+            const htmlData = generateParticipantHTML(winners, {
+                title,
+                subEventMap,
+                type: 'nominated'
+            });
+            res.setHeader('Content-Type', 'text/html');
+            return res.status(200).send(htmlData);
+        } else if (format === 'pdf') {
+            const doc = generateNominatedPDF(winners, { title });
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=nominated-${round.subEvent.name.replace(/\s+/g, '_')}-${Date.now()}.pdf`);
+            doc.pipe(res);
+            doc.end();
+            return;
+        }
+
+        res.status(400).json({ success: false, message: 'Invalid export format' });
+    } catch (err) {
+        next(err);
     }
 });
 

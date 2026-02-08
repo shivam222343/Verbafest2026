@@ -7,6 +7,16 @@
 function generateAttendanceHTML(participants, options = {}) {
     const { type = 'overall', subEventName = '', stats = {}, subEventId = null } = options;
 
+    let logoBase64 = '';
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const logoPath = path.join(__dirname, '../../frontend/public/Mavericks_Logo.png');
+        logoBase64 = fs.readFileSync(logoPath).toString('base64');
+    } catch (err) {
+        console.error('Logo Read Error for HTML:', err);
+    }
+
     const title = type === 'subevent' && subEventName
         ? `${subEventName} - Attendance Report`
         : 'Overall Attendance Report';
@@ -32,13 +42,32 @@ function generateAttendanceHTML(participants, options = {}) {
             min-height: 100vh;
         }
 
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 700px;
+            background-image: url('data:image/png;base64,${logoBase64}');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.15;
+            z-index: 1;
+            pointer-events: none;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(4px);
         }
 
         .header {
@@ -186,6 +215,7 @@ function generateAttendanceHTML(participants, options = {}) {
     </style>
 </head>
 <body>
+    <div class="watermark"></div>
     <div class="container">
         <div class="header">
             <h1>Verbafest 2026</h1>

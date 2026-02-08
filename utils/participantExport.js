@@ -9,7 +9,23 @@
  * @returns {String} - CSV formatted string
  */
 function generateParticipantCSV(participants, options = {}) {
-    const { subEventMap = {} } = options;
+    const { subEventMap = {}, type = 'full' } = options;
+
+    if (type === 'nominated') {
+        const headers = ['Chest No.', 'Full Name', 'Contact Info', 'Status'];
+        let csvContent = headers.join(',') + '\n';
+        participants.forEach(p => {
+            const contact = `${p.email} / ${p.mobile}`;
+            const row = [
+                p.chestNumber || '',
+                escapeCSV(p.fullName || ''),
+                escapeCSV(contact),
+                'Nominated'
+            ];
+            csvContent += row.join(',') + '\n';
+        });
+        return csvContent;
+    }
 
     const headers = [
         'Chest No.',
@@ -70,7 +86,17 @@ function generateParticipantCSV(participants, options = {}) {
  * @returns {String} - HTML formatted string
  */
 function generateParticipantHTML(participants, options = {}) {
-    const { title = 'Participant List', subEventMap = {} } = options;
+    const { title = 'Participant List', subEventMap = {}, type = 'full' } = options;
+
+    let logoBase64 = '';
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const logoPath = path.join(__dirname, '../../frontend/public/Mavericks_Logo.png');
+        logoBase64 = fs.readFileSync(logoPath).toString('base64');
+    } catch (err) {
+        console.error('Logo Read Error for HTML:', err);
+    }
 
     const html = `
 <!DOCTYPE html>
@@ -86,7 +112,7 @@ function generateParticipantHTML(participants, options = {}) {
             --bg: #f8fafc;
             --text-main: #1e293b;
             --text-muted: #64748b;
-            --white: #ffffff;
+            --white: rgba(255, 255, 255, 0.9);
             --border: #e2e8f0;
         }
 
@@ -98,6 +124,25 @@ function generateParticipantHTML(participants, options = {}) {
             color: var(--text-main);
             padding: 40px 20px;
             line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .watermark-fix {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vw;
+            height: 80vh;
+            max-width: 600px;
+            max-height: 600px;
+            background-image: url('data:image/png;base64,${logoBase64}');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.12;
+            z-index: 0;
+            pointer-events: none;
         }
 
         .container {
@@ -105,8 +150,11 @@ function generateParticipantHTML(participants, options = {}) {
             margin: 0 auto;
             background: var(--white);
             border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(4px);
         }
 
         .header {
@@ -222,6 +270,7 @@ function generateParticipantHTML(participants, options = {}) {
     </style>
 </head>
 <body>
+    <div class="watermark-fix"></div>
     <div class="container">
         <div class="header">
             <h1>Verbafest 2026</h1>
@@ -233,6 +282,7 @@ function generateParticipantHTML(participants, options = {}) {
             <div>Date: ${new Date().toLocaleString()}</div>
         </div>
 
+        ${type !== 'nominated' ? `
         <div class="stats">
             <div class="stat-item">
                 <div class="stat-label">Total Selected</div>
@@ -247,51 +297,69 @@ function generateParticipantHTML(participants, options = {}) {
                 <div class="stat-value">${participants.filter(p => p.registrationStatus === 'pending').length}</div>
             </div>
         </div>
+        ` : ''}
 
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>Chest #</th>
-                        <th>Name</th>
-                        <th>Mobile & Email</th>
-                        <th>College & Branch</th>
-                        <th>Sub-Events</th>
-                        <th>Status</th>
-                        <th>Payment</th>
+                        ${type === 'nominated' ? `
+                            <th>Chest #</th>
+                            <th>Student Name</th>
+                            <th>Contact Info</th>
+                            <th>Status</th>
+                        ` : `
+                            <th>Chest #</th>
+                            <th>Name</th>
+                            <th>Mobile & Email</th>
+                            <th>College & Branch</th>
+                            <th>Sub-Events</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                        `}
                     </tr>
                 </thead>
                 <tbody>
                     ${participants.map(p => `
                         <tr>
-                            <td style="font-weight: 700; color: var(--primary);">#${p.chestNumber || '---'}</td>
-                            <td>
-                                <div style="font-weight: 600;">${escapeHTML(p.fullName)}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">PRN: ${escapeHTML(p.prn || 'N/A')}</div>
-                            </td>
-                            <td>
-                                <div>${escapeHTML(p.mobile)}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(p.email)}</div>
-                            </td>
-                            <td>
-                                <div>${escapeHTML(p.college || 'N/A')}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(p.branch || 'N/A')} (${p.year || '?'} Year)</div>
-                            </td>
-                            <td>
-                                ${p.registeredSubEvents && p.registeredSubEvents.length > 0
+                            ${type === 'nominated' ? `
+                                <td style="font-weight: 700; color: var(--primary);">#${p.chestNumber || '---'}</td>
+                                <td style="font-weight: 600;">${escapeHTML(p.fullName)}</td>
+                                <td>
+                                    <div>${escapeHTML(p.mobile || 'N/A')}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(p.email || 'N/A')}</div>
+                                </td>
+                                <td><span class="badge badge-approved" style="background: #dcfce7; color: #166534;">Nominated</span></td>
+                            ` : `
+                                <td style="font-weight: 700; color: var(--primary);">#${p.chestNumber || '---'}</td>
+                                <td>
+                                    <div style="font-weight: 600;">${escapeHTML(p.fullName)}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">PRN: ${escapeHTML(p.prn || 'N/A')}</div>
+                                </td>
+                                <td>
+                                    <div>${escapeHTML(p.mobile)}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(p.email)}</div>
+                                </td>
+                                <td>
+                                    <div>${escapeHTML(p.college || 'N/A')}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(p.branch || 'N/A')} (${p.year || '?'} Year)</div>
+                                </td>
+                                <td>
+                                    ${p.registeredSubEvents && p.registeredSubEvents.length > 0
             ? p.registeredSubEvents.map(se => `
-                                        <span class="sub-event-tag">${escapeHTML(typeof se === 'object' ? se.name : (subEventMap[se] || 'Sub-Event'))}</span>
-                                      `).join('')
+                                            <span class="sub-event-tag">${escapeHTML(typeof se === 'object' ? se.name : (subEventMap[se] || 'Sub-Event'))}</span>
+                                          `).join('')
             : '<span style="color: #cbd5e1;">None</span>'
         }
-                            </td>
-                            <td>
-                                <span class="badge badge-${p.registrationStatus || 'incomplete'}">${p.registrationStatus || 'incomplete'}</span>
-                            </td>
-                            <td>
-                                <div style="font-weight: 600;">₹${p.paidAmount || 0}</div>
-                                <div style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">TXN: ${escapeHTML(p.transactionId || 'N/A')}</div>
-                            </td>
+                                </td>
+                                <td>
+                                    <span class="badge badge-${p.registrationStatus || 'incomplete'}">${p.registrationStatus || 'incomplete'}</span>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">₹${p.paidAmount || 0}</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">TXN: ${escapeHTML(p.transactionId || 'N/A')}</div>
+                                </td>
+                            `}
                         </tr>
                     `).join('')}
                 </tbody>

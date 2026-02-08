@@ -443,4 +443,28 @@ router.get('/:id/history', async (req, res, next) => {
     }
 });
 
+// @route   PUT /api/admin/participants/subevent/:subeventId/make-all-available
+// @desc    Update all participants of a subevent to available status
+// @access  Private (Admin)
+router.put('/subevent/:subeventId/make-all-available', async (req, res, next) => {
+    try {
+        const { subeventId } = req.params;
+        await Participant.updateMany(
+            { registeredSubEvents: subeventId, registrationStatus: 'approved' },
+            { currentStatus: 'available' }
+        );
+
+        // Emit socket update
+        const io = req.app.get('io');
+        if (io) io.emit('availability_update');
+
+        res.status(200).json({
+            success: true,
+            message: `All participants for this event are now marked as available`
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;

@@ -20,6 +20,7 @@ const httpServer = createServer(app);
 const allowedOrigins = [
     'http://localhost:5173',
     'https://verbafest2026.netlify.app',
+    'https://verbafest-2026.netlify.app',
     'https://verbafest2026.teammavericks.org',
     'https://verbafest2026-frontend-duz5.vercel.app',
     process.env.FRONTEND_URL
@@ -34,7 +35,8 @@ const io = new Server(httpServer, {
             if (allowedOrigins.includes(origin)) {
                 callback(null, true);
             } else {
-                callback(new Error('Not allowed by CORS'));
+                console.log('CORS Blocked for origin:', origin);
+                callback(null, false);
             }
         },
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -66,7 +68,8 @@ app.use(cors({
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            console.log('CORS Blocked for origin:', origin);
+            callback(null, false);
         }
     },
     credentials: true,
