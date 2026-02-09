@@ -71,13 +71,15 @@ function generateAttendancePDF(participants, options = {}) {
 
     // Table Header
     const tableTop = doc.y;
-    const col1X = 50;
-    const col2X = 200;
-    const col3X = 320;
-    const col4X = 420;
-    const col5X = 500;
+    const col0X = 50; // Chest No
+    const col1X = 100; // Name
+    const col2X = 220; // Email
+    const col3X = 340; // College
+    const col4X = 440; // Phone
+    const col5X = 520; // Status
 
     doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Chest No', col0X, tableTop);
     doc.text('Name', col1X, tableTop);
     doc.text('Email', col2X, tableTop);
     doc.text('College', col3X, tableTop);
@@ -85,8 +87,8 @@ function generateAttendancePDF(participants, options = {}) {
     doc.text('Status', col5X, tableTop);
 
     // Draw line under header
-    doc.moveTo(col1X, tableTop + 15)
-        .lineTo(550, tableTop + 15)
+    doc.moveTo(col0X, tableTop + 15)
+        .lineTo(570, tableTop + 15)
         .stroke();
 
     let currentY = tableTop + 25;
@@ -104,14 +106,15 @@ function generateAttendancePDF(participants, options = {}) {
 
             // Redraw header on new page
             doc.fontSize(10).font('Helvetica-Bold');
+            doc.text('Chest No', col0X, currentY);
             doc.text('Name', col1X, currentY);
             doc.text('Email', col2X, currentY);
             doc.text('College', col3X, currentY);
             doc.text('Phone', col4X, currentY);
             doc.text('Status', col5X, currentY);
 
-            doc.moveTo(col1X, currentY + 15)
-                .lineTo(550, currentY + 15)
+            doc.moveTo(col0X, currentY + 15)
+                .lineTo(570, currentY + 15)
                 .stroke();
 
             currentY += 25;
@@ -133,11 +136,13 @@ function generateAttendancePDF(participants, options = {}) {
         const statusColor = isPresent ? '#22c55e' : '#ef4444';
 
         // Truncate long text
+        const chestNumber = participant.chestNumber || '-';
         const name = truncateText(participant.fullName || '', 20);
-        const email = truncateText(participant.email || '', 15);
-        const college = truncateText(participant.college || 'N/A', 12);
+        const email = truncateText(participant.email || '', 18);
+        const college = truncateText(participant.college || 'N/A', 15);
         const phone = participant.mobile || 'N/A';
 
+        doc.text(chestNumber.toString(), col0X, currentY);
         doc.text(name, col1X, currentY);
         doc.text(email, col2X, currentY);
         doc.text(college, col3X, currentY);

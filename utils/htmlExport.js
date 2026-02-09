@@ -242,7 +242,7 @@ function generateAttendanceHTML(participants, options = {}) {
             <table>
                 <thead>
                     <tr>
-                        <th>#</th>
+                        <th>Chest No</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>College</th>
@@ -298,7 +298,7 @@ function generateTableRows(participants, type, subEventId) {
 
         return `
             <tr>
-                <td>${index + 1}</td>
+                <td>${participant.chestNumber || '-'}</td>
                 <td>${escapeHTML(participant.fullName || '')}</td>
                 <td>${escapeHTML(participant.email || '')}</td>
                 <td>${escapeHTML(participant.college || 'N/A')}</td>

@@ -9,6 +9,7 @@ function generateAttendanceCSV(participants, options = {}) {
 
     // CSV Header
     const headers = [
+        'Chest Number',
         'Name',
         'Email',
         'Mobile',
@@ -55,6 +56,7 @@ function generateAttendanceCSV(participants, options = {}) {
             : '';
 
         const row = [
+            participant.chestNumber || '-',
             escapeCSV(participant.fullName || ''),
             escapeCSV(participant.email || ''),
             escapeCSV(participant.mobile || ''),

@@ -28,6 +28,11 @@ router.get('/overall', async (req, res) => {
                 { email: { $regex: search, $options: 'i' } },
                 { college: { $regex: search, $options: 'i' } }
             ];
+
+            // If numeric, also search by chestNumber
+            if (!isNaN(search)) {
+                query.$or.push({ chestNumber: parseInt(search) });
+            }
         }
 
         // Present filter
@@ -35,11 +40,15 @@ router.get('/overall', async (req, res) => {
             query['attendance.overall.isPresent'] = present === 'true';
         }
 
+        const sortOption = req.query.sortBy === 'chestNumber'
+            ? { chestNumber: 1, fullName: 1 }
+            : { fullName: 1 };
+
         const participants = await Participant.find(query)
             .populate('registeredSubEvents', 'name')
             .populate('attendance.overall.markedBy', 'name')
-            .select('fullName email mobile college branch year registeredSubEvents attendance')
-            .sort({ fullName: 1 });
+            .select('fullName email mobile college branch year registeredSubEvents attendance chestNumber')
+            .sort(sortOption);
 
         const stats = {
             total: await Participant.countDocuments({ registrationStatus: 'approved' }),
@@ -132,12 +141,21 @@ router.get('/subevent/:id', async (req, res) => {
                 { email: { $regex: search, $options: 'i' } },
                 { college: { $regex: search, $options: 'i' } }
             ];
+
+            // If numeric, also search by chestNumber
+            if (!isNaN(search)) {
+                query.$or.push({ chestNumber: parseInt(search) });
+            }
         }
+
+        const sortOption = req.query.sortBy === 'chestNumber'
+            ? { chestNumber: 1, fullName: 1 }
+            : { fullName: 1 };
 
         const participants = await Participant.find(query)
             .populate('registeredSubEvents', 'name')
-            .select('fullName email mobile college branch year registeredSubEvents attendance')
-            .sort({ fullName: 1 });
+            .select('fullName email mobile college branch year registeredSubEvents attendance chestNumber')
+            .sort(sortOption);
 
         // Filter by present status if specified
         let filteredParticipants = participants;
@@ -360,8 +378,8 @@ router.get('/export/pdf', async (req, res) => {
                 registrationStatus: 'approved'
             })
                 .populate('registeredSubEvents', 'name')
-                .select('fullName email mobile college branch year attendance')
-                .sort({ fullName: 1 });
+                .select('fullName email mobile college branch year attendance chestNumber')
+                .sort({ chestNumber: 1, fullName: 1 });
 
             const presentCount = participants.filter(p => {
                 const subEventAttendance = p.attendance?.subEvents?.find(
@@ -379,8 +397,8 @@ router.get('/export/pdf', async (req, res) => {
             participants = await Participant.find({ registrationStatus: 'approved' })
                 .populate('registeredSubEvents', 'name')
                 .populate('attendance.overall.markedBy', 'name')
-                .select('fullName email mobile college branch year attendance')
-                .sort({ fullName: 1 });
+                .select('fullName email mobile college branch year attendance chestNumber')
+                .sort({ chestNumber: 1, fullName: 1 });
 
             stats = {
                 total: participants.length,
@@ -424,14 +442,14 @@ router.get('/export/csv', async (req, res) => {
             })
                 .populate('registeredSubEvents', 'name')
                 .populate('attendance.subEvents.markedBy', 'name')
-                .select('fullName email mobile college branch year registeredSubEvents attendance')
-                .sort({ fullName: 1 });
+                .select('fullName email mobile college branch year registeredSubEvents attendance chestNumber')
+                .sort({ chestNumber: 1, fullName: 1 });
         } else {
             participants = await Participant.find({ registrationStatus: 'approved' })
                 .populate('registeredSubEvents', 'name')
                 .populate('attendance.overall.markedBy', 'name')
-                .select('fullName email mobile college branch year registeredSubEvents attendance')
-                .sort({ fullName: 1 });
+                .select('fullName email mobile college branch year registeredSubEvents attendance chestNumber')
+                .sort({ chestNumber: 1, fullName: 1 });
         }
 
         const csvData = generateAttendanceCSV(participants, { type, subEventName, subEventId });
@@ -466,8 +484,8 @@ router.get('/export/html', async (req, res) => {
                 registrationStatus: 'approved'
             })
                 .populate('registeredSubEvents', 'name')
-                .select('fullName email mobile college branch year attendance')
-                .sort({ fullName: 1 });
+                .select('fullName email mobile college branch year attendance chestNumber')
+                .sort({ chestNumber: 1, fullName: 1 });
 
             const presentCount = participants.filter(p => {
                 const subEventAttendance = p.attendance?.subEvents?.find(
@@ -484,8 +502,8 @@ router.get('/export/html', async (req, res) => {
         } else {
             participants = await Participant.find({ registrationStatus: 'approved' })
                 .populate('registeredSubEvents', 'name')
-                .select('fullName email mobile college branch year attendance')
-                .sort({ fullName: 1 });
+                .select('fullName email mobile college branch year attendance chestNumber')
+                .sort({ chestNumber: 1, fullName: 1 });
 
             stats = {
                 total: participants.length,
