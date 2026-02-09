@@ -254,7 +254,7 @@ router.get('/:id/participants', async (req, res) => {
         const participants = await Participant.find({
             'registeredSubEvents': req.params.id,
             'registrationStatus': 'approved'
-        }).select('fullName email prn currentStatus');
+        }).select('fullName email prn currentStatus attendance');
 
         res.json({ success: true, data: participants });
     } catch (err) {

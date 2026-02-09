@@ -100,7 +100,7 @@ router.post('/auto-form', async (req, res, next) => {
         // Get participants for this round
         let participantQuery = {
             _id: { $in: round.participants },
-            currentStatus: { $in: ['available', 'qualified'] }
+            currentStatus: { $in: ['available', 'qualified', 'registered'] }
         };
 
         // Fallback for Round 1 if no participants are shortlisted yet
@@ -108,7 +108,7 @@ router.post('/auto-form', async (req, res, next) => {
             participantQuery = {
                 registeredSubEvents: subEventId,
                 registrationStatus: 'approved',
-                currentStatus: { $in: ['available', 'qualified'] }
+                currentStatus: { $in: ['available', 'qualified', 'registered'] }
             };
         } else if (round.roundNumber > 1 && (!round.participants || round.participants.length === 0)) {
             // Find the previous round to get its winners
@@ -120,7 +120,7 @@ router.post('/auto-form', async (req, res, next) => {
             if (prevRound && prevRound.winners && prevRound.winners.length > 0) {
                 participantQuery = {
                     _id: { $in: prevRound.winners },
-                    currentStatus: { $in: ['available', 'qualified'] }
+                    currentStatus: { $in: ['available', 'qualified', 'registered'] }
                 };
             }
         }
